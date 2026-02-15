@@ -4,6 +4,8 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix
+import seaborn as sns
 
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, StandardScaler
@@ -113,6 +115,8 @@ if uploaded_file is not None:
         y = data[target_column]
 
         X = pd.get_dummies(X, drop_first=True)
+        st.session_state.training_columns = X.columns
+
 
         if pd.api.types.is_numeric_dtype(y):
             problem_type = "Regression"
@@ -228,6 +232,42 @@ if uploaded_file is not None:
         st.subheader("📊 Model Comparison")
         st.dataframe(st.session_state.results_df)
 
+    if (
+        "problem_type" in st.session_state and
+        st.session_state.problem_type == "Classification" and
+        "best_model" in st.session_state
+    ):
+
+        st.subheader("📊 Confusion Matrix (Best Model)")
+
+        X = pd.get_dummies(data[st.session_state.input_columns], drop_first=True)
+        y = data[st.session_state.target_column]
+
+        if st.session_state.label_encoder:
+            y = st.session_state.label_encoder.transform(y)
+
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y,
+            test_size=0.2,
+            random_state=42,
+            stratify=y
+        )
+
+        y_pred = st.session_state.best_model.predict(X_test)
+
+       
+
+        cm = confusion_matrix(y_test, y_pred)
+
+        fig, ax = plt.subplots(figsize=(6, 4))
+        sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", ax=ax)
+
+        ax.set_xlabel("Predicted")
+        ax.set_ylabel("Actual")
+        ax.set_title("Confusion Matrix")
+
+        st.pyplot(fig)
+
     # ---------------------------------------------------
     # REGRESSION GRAPH
     # ---------------------------------------------------
@@ -272,18 +312,39 @@ if uploaded_file is not None:
 
         st.subheader("🔮 Make Prediction & Compare Models")
 
-        user_input = []
+        user_input_dict = {}
+
         for col in st.session_state.input_columns:
-            user_input.append(
-                st.number_input(f"Enter value for {col}", value=0.0)
-            )
+            # If column is categorical
+            if not pd.api.types.is_numeric_dtype(data[col]):
+
+
+                user_input_dict[col] = st.selectbox(
+                    f"Select value for {col}",
+                    options=data[col].unique()
+                )
+            # If column is numeric
+            else:
+                user_input_dict[col] = st.number_input(
+                    f"Enter value for {col}",
+                    value=float(data[col].mean())
+                )
 
         if st.button("🚀 Compare All Models"):
 
-            user_df = pd.DataFrame(
-                [user_input],
-                columns=st.session_state.input_columns
-            )
+            # Create DataFrame from user input
+            user_df = pd.DataFrame([user_input_dict])
+
+            # Apply same encoding used during training
+            user_df = pd.get_dummies(user_df, drop_first=True)
+
+            # Add missing columns
+            for col in st.session_state.training_columns:
+                if col not in user_df.columns:
+                    user_df[col] = 0
+
+            # Ensure correct column order
+            user_df = user_df[st.session_state.training_columns]
 
             predictions = []
             best_model_name = st.session_state.best_model_name
