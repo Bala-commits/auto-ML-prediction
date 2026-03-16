@@ -1,7 +1,6 @@
 # ════════════════════════════════════════════════════════════════════════
-#  Intelligent Data Analysis & ML System  —  v7
-#  v6 FIXES + NEW: Module 7 — Unsupervised Learning (Manual Algorithms)
-#  Includes: K-Means · Hierarchical · DBSCAN · PCA · Apriori
+#  Intelligent Data Analysis & ML System  —  v8
+#  v7 + REDESIGNED Module 7 K-Means (user-friendly report layout)
 # ════════════════════════════════════════════════════════════════════════
 import streamlit as st
 import pandas as pd
@@ -206,6 +205,94 @@ h1,h2,h3 { font-family:'JetBrains Mono',monospace; color:var(--bright); letter-s
 .cat-tag { display:inline-block; background:#1a0d28; border:1px solid #5a2a7a;
     color:#c890f0; font-size:0.65rem; padding:1px 6px; border-radius:3px;
     font-family:JetBrains Mono,monospace; margin-left:6px; vertical-align:middle; }
+
+/* ── K-Means report styles ─────────────────────────────────────────── */
+.km-step-header {
+    display:flex; align-items:center; gap:14px;
+    background:linear-gradient(90deg,#071828 0%,#050f18 100%);
+    border:1px solid #0f2e46; border-left:4px solid #22e8a0;
+    border-radius:8px; padding:14px 20px; margin:24px 0 12px 0;
+}
+.km-step-num {
+    font-family:'JetBrains Mono',monospace; font-size:1.4rem; font-weight:700;
+    color:#22e8a0; min-width:36px; line-height:1;
+}
+.km-step-title {
+    font-family:'JetBrains Mono',monospace; font-size:0.95rem; font-weight:700;
+    color:#a8ccde; line-height:1.2;
+}
+.km-step-sub { font-size:0.73rem; color:#7ea8c4; margin-top:3px; }
+
+.km-explainer {
+    background:linear-gradient(135deg,#081828 0%,#060f1c 100%);
+    border:1px solid #0f2e46; border-radius:10px;
+    padding:20px 26px; margin:10px 0 18px 0;
+}
+.km-explainer p { font-size:0.85rem; color:#a0bfd4; line-height:1.7; margin:0 0 10px 0; }
+.km-explainer p:last-child { margin-bottom:0; }
+.km-explainer strong { color:#22e8a0; }
+
+.km-summary-strip {
+    display:flex; gap:14px; flex-wrap:wrap; margin:14px 0;
+}
+.km-summary-tile {
+    flex:1; min-width:130px;
+    background:linear-gradient(135deg,#0a1e1a 0%,#070f14 100%);
+    border:1px solid #1a4a38; border-radius:10px;
+    padding:16px 18px; text-align:center;
+}
+.km-summary-tile .kmt-val {
+    font-family:'JetBrains Mono',monospace; font-size:1.8rem; font-weight:700;
+    color:#22e8a0; line-height:1;
+}
+.km-summary-tile .kmt-lbl {
+    font-size:0.69rem; color:#7ea8c4;
+    letter-spacing:0.1em; text-transform:uppercase; margin-top:6px;
+}
+
+.km-cluster-card {
+    background:linear-gradient(135deg,#081624 0%,#060f18 100%);
+    border:1px solid #0f2840; border-radius:10px;
+    padding:18px 20px; margin:8px 0;
+}
+.km-cluster-card .kcc-header {
+    display:flex; align-items:center; gap:10px; margin-bottom:10px;
+}
+.km-cluster-card .kcc-dot {
+    width:14px; height:14px; border-radius:50%; flex-shrink:0;
+}
+.km-cluster-card .kcc-name {
+    font-family:'JetBrains Mono',monospace; font-size:0.9rem; font-weight:700; color:#a8ccde;
+}
+.km-cluster-card .kcc-count {
+    font-size:0.73rem; color:#7ea8c4; margin-left:auto;
+    font-family:'JetBrains Mono',monospace;
+}
+.km-cluster-card .kcc-body { font-size:0.78rem; color:#7ea8c4; line-height:1.7; }
+.km-cluster-card .kcc-body strong { color:#22e8a0; }
+
+.km-insight-row {
+    display:flex; align-items:flex-start; gap:12px;
+    background:#081420; border:1px solid #0e2a3a; border-radius:8px;
+    padding:12px 16px; margin:7px 0;
+}
+.km-insight-icon { font-size:1.1rem; min-width:28px; }
+.km-insight-title { font-family:'JetBrains Mono',monospace; font-size:0.78rem; color:#22e8a0; font-weight:700; margin-bottom:2px; }
+.km-insight-body { font-size:0.76rem; color:#7ea8c4; line-height:1.5; }
+
+.km-quality-badge {
+    display:inline-block; font-family:'JetBrains Mono',monospace;
+    font-size:0.7rem; font-weight:700; letter-spacing:0.1em;
+    padding:4px 12px; border-radius:5px; margin-left:10px; vertical-align:middle;
+}
+.km-quality-strong { background:#0a2e1e; color:#22e8a0; border:1px solid #1a6040; }
+.km-quality-moderate { background:#2a2008; color:#e0a844; border:1px solid #5a4010; }
+.km-quality-weak { background:#2a0808; color:#e07070; border:1px solid #5a2020; }
+
+.km-elbow-hint {
+    font-size:0.74rem; color:#5a8aa8; font-family:'JetBrains Mono',monospace;
+    text-align:center; margin-top:4px; font-style:italic;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -225,8 +312,8 @@ ACCENT6  = "#d05090"
 ACCENT7  = "#22e8a0"
 
 CLUSTER_PALETTE = [
-    "#2d8fcb", "#22e8a0", "#e0a844", "#c05555", "#a060c8",
-    "#d05090", "#44c8e0", "#e07030", "#70c040", "#c0a020",
+    "#22e8a0", "#2d8fcb", "#e0a844", "#d05090", "#a060c8",
+    "#44c8e0", "#e07030", "#c05555", "#70c040", "#c0a020",
 ]
 
 REG_MODEL_COLORS = {
@@ -417,7 +504,6 @@ class ManualKMeans:
         return X[idx].copy()
 
     def _assign_labels(self, X):
-        # Euclidean distance from each point to each centroid
         dists = np.linalg.norm(X[:, None, :] - self.centroids_[None, :, :], axis=2)
         return dists.argmin(axis=1)
 
@@ -453,15 +539,14 @@ class ManualKMeans:
 
 
 class ManualHierarchicalClustering:
-    """Agglomerative Hierarchical Clustering (single linkage) from scratch."""
+    """Agglomerative Hierarchical Clustering from scratch."""
     def __init__(self, n_clusters=3, linkage="average"):
         self.n_clusters = n_clusters
         self.linkage = linkage
         self.labels_ = None
-        self.merge_history_ = []   # list of (cluster_a, cluster_b, distance)
+        self.merge_history_ = []
 
     def _cluster_dist(self, X, c_a, c_b):
-        """Compute linkage distance between two clusters."""
         pts_a = X[list(c_a)]
         pts_b = X[list(c_b)]
         dists = np.linalg.norm(pts_a[:, None, :] - pts_b[None, :, :], axis=2)
@@ -469,34 +554,26 @@ class ManualHierarchicalClustering:
             return dists.min()
         elif self.linkage == "complete":
             return dists.max()
-        else:  # average
+        else:
             return dists.mean()
 
     def fit(self, X):
         n = len(X)
-        # Each point starts as its own cluster (cluster id → set of indices)
         clusters = {i: {i} for i in range(n)}
-
         while len(clusters) > self.n_clusters:
             ids = list(clusters.keys())
             best_dist = np.inf
             best_pair = (ids[0], ids[1])
-
-            # Find the two closest clusters
             for i in range(len(ids)):
                 for j in range(i + 1, len(ids)):
                     d = self._cluster_dist(X, clusters[ids[i]], clusters[ids[j]])
                     if d < best_dist:
                         best_dist = d
                         best_pair = (ids[i], ids[j])
-
             a, b = best_pair
             self.merge_history_.append((a, b, best_dist))
-            # Merge b into a
             clusters[a] = clusters[a] | clusters[b]
             del clusters[b]
-
-        # Assign integer labels 0..n_clusters-1
         self.labels_ = np.zeros(n, dtype=int)
         for label_idx, (_, members) in enumerate(clusters.items()):
             for pt in members:
@@ -505,7 +582,7 @@ class ManualHierarchicalClustering:
 
 
 class ManualDBSCAN:
-    """DBSCAN from scratch using region-growing approach."""
+    """DBSCAN from scratch."""
     def __init__(self, eps=0.5, min_samples=5):
         self.eps = eps
         self.min_samples = min_samples
@@ -519,40 +596,29 @@ class ManualDBSCAN:
 
     def fit(self, X):
         n = len(X)
-        labels = np.full(n, -2, dtype=int)   # -2 = unvisited, -1 = noise
+        labels = np.full(n, -2, dtype=int)
         cluster_id = 0
-
         for i in range(n):
             if labels[i] != -2:
                 continue
             neighbors = self._get_neighbors(X, i)
-
-            # Not a core point → mark noise (may be revisited as border)
             if len(neighbors) < self.min_samples:
                 labels[i] = -1
                 continue
-
-            # Start a new cluster
             labels[i] = cluster_id
-            seed_set = list(neighbors)
-            seed_set = [s for s in seed_set if s != i]
-
+            seed_set = [s for s in list(neighbors) if s != i]
             ptr = 0
             while ptr < len(seed_set):
-                q = seed_set[ptr]
-                ptr += 1
+                q = seed_set[ptr]; ptr += 1
                 if labels[q] == -1:
-                    labels[q] = cluster_id   # border point
+                    labels[q] = cluster_id
                 if labels[q] != -2:
                     continue
                 labels[q] = cluster_id
                 q_neighbors = self._get_neighbors(X, q)
                 if len(q_neighbors) >= self.min_samples:
                     seed_set.extend([s for s in q_neighbors if labels[s] == -2 or labels[s] == -1])
-
             cluster_id += 1
-
-        # Any remaining unvisited (shouldn't happen) → noise
         labels[labels == -2] = -1
         self.labels_ = labels
         self.n_clusters_ = cluster_id
@@ -561,7 +627,7 @@ class ManualDBSCAN:
 
 
 class ManualPCA:
-    """Principal Component Analysis from scratch via eigendecomposition."""
+    """PCA from scratch via eigendecomposition."""
     def __init__(self, n_components=2):
         self.n_components = n_components
         self.components_ = None
@@ -573,10 +639,9 @@ class ManualPCA:
         self.mean_ = X.mean(axis=0)
         X_c = X - self.mean_
         cov = np.cov(X_c, rowvar=False)
-        if cov.ndim == 0:  # single feature edge case
+        if cov.ndim == 0:
             cov = np.array([[float(cov)]])
         eigenvalues, eigenvectors = np.linalg.eigh(cov)
-        # Sort descending
         order = np.argsort(eigenvalues)[::-1]
         eigenvalues  = eigenvalues[order]
         eigenvectors = eigenvectors[:, order]
@@ -596,25 +661,23 @@ class ManualPCA:
 
 
 class ManualApriori:
-    """Apriori algorithm for association rule mining from scratch."""
+    """Apriori algorithm from scratch."""
     def __init__(self, min_support=0.2, min_confidence=0.5):
         self.min_support = min_support
         self.min_confidence = min_confidence
-        self.frequent_itemsets_ = {}   # frozenset → support
-        self.rules_ = []               # list of dicts
+        self.frequent_itemsets_ = {}
+        self.rules_ = []
 
     def _get_support(self, transactions, itemset):
         count = sum(1 for t in transactions if itemset.issubset(t))
         return count / len(transactions)
 
     def _generate_candidates(self, prev_itemsets, k):
-        """Generate k-itemset candidates by joining (k-1)-itemsets."""
         items_list = [sorted(list(s)) for s in prev_itemsets]
         candidates = set()
         for i in range(len(items_list)):
             for j in range(i + 1, len(items_list)):
                 a, b = items_list[i], items_list[j]
-                # Join if first k-2 elements match
                 if a[:k-2] == b[:k-2]:
                     candidate = frozenset(a) | frozenset(b)
                     if len(candidate) == k:
@@ -622,13 +685,7 @@ class ManualApriori:
         return candidates
 
     def fit(self, transactions):
-        """
-        transactions: list of sets/frozensets of items.
-        """
         transactions = [frozenset(t) for t in transactions]
-        n = len(transactions)
-
-        # 1-itemsets
         all_items = set(item for t in transactions for item in t)
         current_frequent = set()
         for item in all_items:
@@ -637,7 +694,6 @@ class ManualApriori:
             if sup >= self.min_support:
                 self.frequent_itemsets_[fs] = sup
                 current_frequent.add(fs)
-
         k = 2
         while current_frequent:
             candidates = self._generate_candidates(current_frequent, k)
@@ -648,18 +704,10 @@ class ManualApriori:
                     self.frequent_itemsets_[cand] = sup
                     current_frequent.add(cand)
             k += 1
-
-        # Generate association rules
         for itemset, sup in self.frequent_itemsets_.items():
             if len(itemset) < 2:
                 continue
             items = list(itemset)
-            # Generate all non-empty proper subsets as antecedents
-            for size in range(1, len(items)):
-                for i in range(len(items)):
-                    # Use combinations-style iteration
-                    pass
-            # Proper subset generation
             for mask in range(1, 2 ** len(items) - 1):
                 antecedent = frozenset(items[i] for i in range(len(items)) if mask & (1 << i))
                 consequent = itemset - antecedent
@@ -679,8 +727,6 @@ class ManualApriori:
                         "confidence": round(confidence, 4),
                         "lift":       round(lift, 4),
                     })
-
-        # Deduplicate rules (same antecedent+consequent may appear multiple times)
         seen = set()
         unique_rules = []
         for r in self.rules_:
@@ -709,7 +755,6 @@ def reg_evaluate(model, X_te, y_te):
             "MAE": calc_mae(y_te, yp), "yp": yp}
 
 def silhouette_score_manual(X, labels):
-    """Compute silhouette score from scratch (mean over all samples)."""
     unique_labels = [l for l in np.unique(labels) if l != -1]
     if len(unique_labels) < 2:
         return float("nan")
@@ -767,6 +812,13 @@ def summary_row(icon, key, val):
     return (f'<div class="summary-item"><span class="summary-icon">{icon}</span>'
             f'<span class="summary-key">{key}</span>'
             f'<span class="summary-val">{val}</span></div>')
+
+def km_step(num, title, sub=""):
+    sub_html = f'<div class="km-step-sub">{sub}</div>' if sub else ""
+    return (f'<div class="km-step-header">'
+            f'<div class="km-step-num">{num}</div>'
+            f'<div><div class="km-step-title">{title}</div>{sub_html}</div>'
+            f'</div>')
 
 # ════════════════════════════════════════════════════════════════════════
 # HEADER
@@ -1755,7 +1807,6 @@ st.markdown(module_banner(
 if len(numeric_cols) < 2:
     st.warning("⚠ Module 7 requires at least 2 numeric columns for unsupervised learning.")
 else:
-    # ── Algorithm selector ────────────────────────────────────────────────
     UNSUP_ALGOS = [
         "K-Means Clustering",
         "Apriori — Association Rules",
@@ -1766,7 +1817,6 @@ else:
         key="unsup_algo"
     )
 
-    # ── Feature selection ─────────────────────────────────────────────────
     st.markdown("#### Feature Selection for Unsupervised Learning")
     default_unsup_feats = numeric_cols[:min(5, len(numeric_cols))]
     unsup_feats = st.multiselect(
@@ -1779,12 +1829,10 @@ else:
     if len(unsup_feats) < 2:
         st.warning("Please select at least 2 numeric features.")
     else:
-        # Build the unsupervised feature matrix (impute + standardize)
         X_unsup_raw = np.hstack([
             data[f].fillna(data[f].median()).values.astype(float).reshape(-1, 1)
             for f in unsup_feats
         ])
-        # Always standardize for unsupervised learning
         unsup_mu = X_unsup_raw.mean(axis=0)
         unsup_sg = X_unsup_raw.std(axis=0); unsup_sg[unsup_sg == 0] = 1.0
         X_unsup  = (X_unsup_raw - unsup_mu) / unsup_sg
@@ -1792,30 +1840,33 @@ else:
         st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
 
         # ══════════════════════════════════════════════════════════════════
-        # K-MEANS
+        # K-MEANS  ── REDESIGNED USER-FRIENDLY REPORT LAYOUT
         # ══════════════════════════════════════════════════════════════════
         if unsup_algo == "K-Means Clustering":
             st.markdown('<div class="module-banner" style="border-left-color:#22e8a0;">'
                         '<div class="mod-label" style="color:#22e8a0;">⬡ Algorithm · K-Means</div>'
-                        '<div class="mod-title">Manual K-Means Clustering</div>'
-                        '<div class="mod-sub">Euclidean distance · centroid update · convergence detection</div>'
+                        '<div class="mod-title">K-Means Clustering — Analysis Report</div>'
+                        '<div class="mod-sub">Automatically groups your data into clusters of similar records</div>'
                         '</div>', unsafe_allow_html=True)
 
+            # ── Controls ─────────────────────────────────────────────────
             kp1, kp2, kp3 = st.columns(3)
             with kp1:
-                km_k       = st.slider("Number of Clusters (K)", 2, 10, 3, 1, key="km_k")
+                km_k = st.slider("Number of Groups (K)", 2, 10, 3, 1, key="km_k",
+                                 help="How many groups should the data be divided into?")
             with kp2:
-                km_maxiter = st.slider("Max Iterations", 50, 500, 300, 50, key="km_maxiter")
+                km_maxiter = st.slider("Max Iterations", 50, 500, 300, 50, key="km_maxiter",
+                                      help="How many refinement passes the algorithm is allowed to run.")
             with kp3:
-                km_seed    = st.number_input("Random Seed", min_value=0, max_value=999, value=42, step=1, key="km_seed")
+                km_seed = st.number_input("Random Seed", min_value=0, max_value=999, value=42,
+                                          step=1, key="km_seed",
+                                          help="Ensures results are reproducible.")
 
-            # Elbow method preview
-            show_elbow = st.checkbox("Show Elbow Plot (K=2..8)", value=True, key="km_elbow")
-
-            run_km = st.button("▶  Run K-Means", use_container_width=True, key="run_km")
+            show_elbow = st.checkbox("Show 'How many groups?' Helper Chart", value=True, key="km_elbow")
+            run_km = st.button("▶  Run Clustering Analysis", use_container_width=True, key="run_km")
 
             if run_km:
-                with st.spinner("Running Manual K-Means…"):
+                with st.spinner("Grouping your data…"):
                     km_model = ManualKMeans(k=km_k, max_iter=km_maxiter, random_state=int(km_seed))
                     km_model.fit(X_unsup)
                     km_labels    = km_model.labels_
@@ -1828,100 +1879,432 @@ else:
                     st.session_state["_km_sil"]       = km_sil
                     st.session_state["_km_k"]         = km_k
 
-                # ── Metrics banner ────────────────────────────────────────
-                mc = '<div class="card-grid">'
-                for v, l in [(str(km_k), "Clusters"), (str(km_model.n_iter_), "Iterations"),
-                             (f"{km_model.inertia_:.2f}", "Inertia (WCSS)"),
-                             (f"{km_sil:.4f}" if not np.isnan(km_sil) else "N/A", "Silhouette Score")]:
-                    mc += metric_card(v, l, "unsup-metric-card")
-                mc += '</div>'
-                st.markdown(mc, unsafe_allow_html=True)
+            if st.session_state.get("_km_labels") is not None:
+                km_labels    = st.session_state["_km_labels"]
+                km_centroids = st.session_state["_km_centroids"]
+                km_model     = st.session_state["_km_model"]
+                km_sil       = st.session_state["_km_sil"]
+                km_k_used    = st.session_state["_km_k"]
 
-                # ── Cluster size summary ──────────────────────────────────
-                uniq, cnts = np.unique(km_labels, return_counts=True)
-                size_html = '<div class="summary-box"><div class="summary-title">⬡ Cluster Size Summary</div>'
-                for uid, cnt in zip(uniq, cnts):
-                    pct = cnt / len(km_labels) * 100
-                    clr = CLUSTER_PALETTE[uid % len(CLUSTER_PALETTE)]
-                    size_html += (f'<div class="summary-item">'
-                                  f'<span class="summary-icon" style="color:{clr};">●</span>'
-                                  f'<span class="summary-key">Cluster {uid}</span>'
-                                  f'<span class="summary-val">{cnt} points ({pct:.1f}%)</span></div>')
-                size_html += '</div>'
-                st.markdown(size_html, unsafe_allow_html=True)
+                uniq_c, cnt_c = np.unique(km_labels, return_counts=True)
+                n_points      = len(km_labels)
 
-                # ── Elbow plot ────────────────────────────────────────────
+                # ── Quality badge ─────────────────────────────────────────
+                if not np.isnan(km_sil):
+                    if km_sil > 0.5:
+                        q_label, q_cls = "Strong Grouping", "km-quality-strong"
+                    elif km_sil > 0.25:
+                        q_label, q_cls = "Moderate Grouping", "km-quality-moderate"
+                    else:
+                        q_label, q_cls = "Weak Grouping", "km-quality-weak"
+                else:
+                    q_label, q_cls = "N/A", "km-quality-moderate"
+
+                # ─────────────────────────────────────────────────────────
+                # STEP 1 — What is clustering?
+                # ─────────────────────────────────────────────────────────
+                st.markdown(km_step("1", "What is Clustering?",
+                    "A plain-language explanation of what this analysis does"), unsafe_allow_html=True)
+
+                st.markdown(f"""
+<div class="km-explainer">
+  <p>
+    <strong>Clustering</strong> automatically finds natural groups in your data — no labels or prior knowledge required.
+    Records that are similar to each other get placed in the same group, while records that are very different end up in separate groups.
+  </p>
+  <p>
+    In this analysis, your <strong>{n_points:,} records</strong> have been divided into
+    <strong>{km_k_used} groups</strong> based on the features you selected
+    ({", ".join(f"<em>{f}</em>" for f in unsup_feats)}).
+    Each group represents a distinct "type" of record in your dataset.
+  </p>
+  <p>
+    The overall grouping quality is rated as
+    <span class="{q_cls} km-quality-badge">{q_label}</span>
+    — {"the groups are clearly separated and well-defined." if km_sil > 0.5
+       else ("the groups have reasonable separation but some overlap exists." if km_sil > 0.25
+             else "the groups overlap significantly — try a different K or different features.")}
+  </p>
+</div>
+""", unsafe_allow_html=True)
+
+                # ─────────────────────────────────────────────────────────
+                # STEP 2 — Cluster Visualization
+                # ─────────────────────────────────────────────────────────
+                st.markdown(km_step("2", "Group Visualization",
+                    "Each dot is one record — same colour = same group"), unsafe_allow_html=True)
+
+                # PCA for 2-D projection
+                if X_unsup.shape[1] == 2:
+                    plot_X   = X_unsup
+                    var_expl = 100.0
+                    ax_label_x = unsup_feats[0]
+                    ax_label_y = unsup_feats[1]
+                else:
+                    pca_viz  = ManualPCA(n_components=2)
+                    plot_X   = pca_viz.fit_transform(X_unsup)
+                    var_r    = pca_viz.explained_variance_ratio_
+                    var_expl = float((var_r[0] + var_r[1]) * 100)
+                    ax_label_x = f"Dimension 1  ({var_r[0]*100:.1f}% of variation captured)"
+                    ax_label_y = f"Dimension 2  ({var_r[1]*100:.1f}% of variation captured)"
+                    c_proj   = pca_viz.transform(km_centroids)
+
+                fig_km, ax_km = plt.subplots(figsize=(10, 6.5))
+                for cid in range(km_k_used):
+                    mask = km_labels == cid
+                    clr  = CLUSTER_PALETTE[cid % len(CLUSTER_PALETTE)]
+                    label_str = f"Group {cid + 1}  (n = {mask.sum():,})"
+                    ax_km.scatter(plot_X[mask, 0], plot_X[mask, 1],
+                                  s=55, color=clr, alpha=0.75,
+                                  edgecolors="none", label=label_str, zorder=3)
+
+                # Centroids
+                if X_unsup.shape[1] > 2:
+                    cent_plot = c_proj
+                else:
+                    cent_plot = km_centroids
+                for cid in range(km_k_used):
+                    clr = CLUSTER_PALETTE[cid % len(CLUSTER_PALETTE)]
+                    ax_km.scatter(cent_plot[cid, 0], cent_plot[cid, 1],
+                                  s=320, marker="D", color=clr,
+                                  edgecolors="#ffffff", linewidth=1.8,
+                                  zorder=6, alpha=1.0)
+                    ax_km.annotate(f"G{cid+1}",
+                                   (cent_plot[cid, 0], cent_plot[cid, 1]),
+                                   textcoords="offset points", xytext=(0, 10),
+                                   ha="center", fontsize=9,
+                                   color="#ffffff", fontweight="bold",
+                                   fontfamily="monospace")
+
+                # Legend with centroid marker explanation
+                centroid_patch = mpatches.Patch(facecolor="#aaaaaa",
+                                                edgecolor="#ffffff", linewidth=1.5,
+                                                label="◆ Group centre")
+                handles, labels_leg = ax_km.get_legend_handles_labels()
+                ax_km.legend(handles=handles + [centroid_patch],
+                             labels=labels_leg + ["◆ Group centre"],
+                             fontsize=8.5, framealpha=0.18,
+                             labelcolor=TEXT_CLR, loc="best",
+                             facecolor=AXES_BG, edgecolor=GRID_CLR)
+
+                ax_km.set_xlabel(ax_label_x, fontsize=10)
+                ax_km.set_ylabel(ax_label_y, fontsize=10)
+                ax_km.set_title(
+                    f"Your Data Divided into {km_k_used} Groups",
+                    fontsize=13, pad=12
+                )
+                apply_theme(fig_km, ax_km)
+                fig_km.tight_layout()
+                st.pyplot(fig_km)
+                plt.close()
+
+                if X_unsup.shape[1] > 2:
+                    st.markdown(
+                        f'<p class="km-elbow-hint">ℹ This 2-D view was created by compressing your '
+                        f'{len(unsup_feats)} features into 2 dimensions. '
+                        f'It captures <strong>{var_expl:.1f}%</strong> of the total variation in the data.</p>',
+                        unsafe_allow_html=True
+                    )
+
+                # ─────────────────────────────────────────────────────────
+                # STEP 3 — Cluster size distribution
+                # ─────────────────────────────────────────────────────────
+                st.markdown(km_step("3", "How Big is Each Group?",
+                    "Number of records assigned to each group"), unsafe_allow_html=True)
+
+                col_tbl, col_bar = st.columns([1, 2])
+
+                with col_tbl:
+                    size_rows = []
+                    for cid, cnt in zip(uniq_c, cnt_c):
+                        pct = cnt / n_points * 100
+                        size_rows.append({
+                            "Group": f"Group {cid + 1}",
+                            "Records": int(cnt),
+                            "Share": f"{pct:.1f}%",
+                        })
+                    size_df = pd.DataFrame(size_rows)
+                    st.dataframe(size_df, use_container_width=True, hide_index=True)
+
+                with col_bar:
+                    fig_sz, ax_sz = plt.subplots(figsize=(6, max(2.5, km_k_used * 0.7)))
+                    group_names = [f"Group {cid + 1}" for cid in uniq_c]
+                    bar_clrs_sz = [CLUSTER_PALETTE[cid % len(CLUSTER_PALETTE)] for cid in uniq_c]
+                    bars_sz = ax_sz.barh(group_names[::-1], cnt_c[::-1],
+                                         color=bar_clrs_sz[::-1],
+                                         edgecolor=AXES_BG, linewidth=0.5,
+                                         height=0.55)
+                    for bar, cnt in zip(bars_sz, cnt_c[::-1]):
+                        pct = cnt / n_points * 100
+                        ax_sz.text(bar.get_width() + n_points * 0.005,
+                                   bar.get_y() + bar.get_height() / 2,
+                                   f"{cnt:,}  ({pct:.1f}%)",
+                                   va="center", ha="left", fontsize=8.5,
+                                   color=TEXT_CLR, fontfamily="monospace")
+                    ax_sz.set_xlabel("Number of Records", fontsize=9)
+                    ax_sz.set_title("Records per Group", fontsize=10)
+                    ax_sz.set_xlim(0, cnt_c.max() * 1.35)
+                    apply_theme(fig_sz, ax_sz)
+                    fig_sz.tight_layout()
+                    st.pyplot(fig_sz)
+                    plt.close()
+
+                # ─────────────────────────────────────────────────────────
+                # STEP 4 — Cluster profiles
+                # ─────────────────────────────────────────────────────────
+                st.markdown(km_step("4", "What Defines Each Group?",
+                    "Average value of each feature per group — helps understand what makes groups different"), unsafe_allow_html=True)
+
+                profile_data = data[unsup_feats].copy()
+                profile_data["__cluster__"] = km_labels
+                cluster_profile_raw = (
+                    profile_data.groupby("__cluster__")[unsup_feats].mean()
+                )
+                cluster_profile_raw.index = [f"Group {i+1}" for i in cluster_profile_raw.index]
+
+                # Rename columns to be cleaner in the display
+                display_profile = cluster_profile_raw.round(3)
+
+                st.markdown(
+                    '<p style="font-size:0.8rem;color:#7ea8c4;margin:6px 0 10px 0;">'
+                    'Each cell shows the <strong>average value</strong> of that feature for records in that group. '
+                    'Compare rows to spot what makes each group unique.</p>',
+                    unsafe_allow_html=True
+                )
+                st.dataframe(display_profile.T, use_container_width=True)
+
+                # Per-feature grouped bar chart
+                if len(unsup_feats) <= 8:
+                    fig_prof, ax_prof = plt.subplots(
+                        figsize=(max(8, km_k_used * 1.8), max(3.5, len(unsup_feats) * 0.7))
+                    )
+                    x       = np.arange(len(unsup_feats))
+                    width   = 0.75 / km_k_used
+                    offsets = np.linspace(-(km_k_used - 1) * width / 2,
+                                          (km_k_used - 1) * width / 2, km_k_used)
+                    for cid in range(km_k_used):
+                        vals = [cluster_profile_raw.loc[f"Group {cid+1}", f] for f in unsup_feats]
+                        ax_prof.bar(x + offsets[cid], vals, width,
+                                    label=f"Group {cid+1}",
+                                    color=CLUSTER_PALETTE[cid % len(CLUSTER_PALETTE)],
+                                    edgecolor=AXES_BG, linewidth=0.4, alpha=0.9)
+                    ax_prof.set_xticks(x)
+                    ax_prof.set_xticklabels(unsup_feats, rotation=20, ha="right", fontsize=8)
+                    ax_prof.set_ylabel("Average Value", fontsize=9)
+                    ax_prof.set_title("Average Feature Values per Group", fontsize=11)
+                    ax_prof.legend(fontsize=8, framealpha=0.2, labelcolor=TEXT_CLR,
+                                   facecolor=AXES_BG, edgecolor=GRID_CLR)
+                    apply_theme(fig_prof, ax_prof)
+                    fig_prof.tight_layout()
+                    st.pyplot(fig_prof)
+                    plt.close()
+
+                # Compact per-cluster description cards
+                st.markdown("#### Group Summaries")
+                overall_means = data[unsup_feats].mean()
+                overall_stds  = data[unsup_feats].std().replace(0, 1)
+
+                card_cols = st.columns(min(km_k_used, 3))
+                for cid in range(km_k_used):
+                    clr  = CLUSTER_PALETTE[cid % len(CLUSTER_PALETTE)]
+                    cnt  = int(cnt_c[cid])
+                    pct  = cnt / n_points * 100
+                    grp_means = cluster_profile_raw.loc[f"Group {cid+1}"]
+
+                    # Find the most distinctive feature (highest z-score vs overall)
+                    z_scores = ((grp_means - overall_means) / overall_stds).abs()
+                    top_feat  = z_scores.idxmax()
+                    top_val   = grp_means[top_feat]
+                    top_dir   = "above" if grp_means[top_feat] > overall_means[top_feat] else "below"
+                    top_z     = z_scores[top_feat]
+
+                    # Two more standout features
+                    sorted_feats = z_scores.sort_values(ascending=False)
+                    detail_lines = []
+                    for ff in sorted_feats.index[:3]:
+                        fv  = grp_means[ff]
+                        fd  = "▲" if fv > overall_means[ff] else "▼"
+                        detail_lines.append(
+                            f'<strong style="color:#a8ccde;">{ff}</strong>: '
+                            f'avg {fv:.2f} '
+                            f'<span style="color:{"#22e8a0" if fd == "▲" else "#e07070"};">{fd}</span>'
+                        )
+
+                    with card_cols[cid % 3]:
+                        st.markdown(f"""
+<div class="km-cluster-card">
+  <div class="kcc-header">
+    <div class="kcc-dot" style="background:{clr};"></div>
+    <div class="kcc-name">Group {cid + 1}</div>
+    <div class="kcc-count">{cnt:,} records &nbsp;·&nbsp; {pct:.1f}%</div>
+  </div>
+  <div class="kcc-body">
+    <strong>Most distinctive trait:</strong><br>
+    {top_feat} is <strong>{top_dir}</strong> the dataset average
+    (avg = {top_val:.2f}, z = {top_z:.2f})<br><br>
+    {"<br>".join(detail_lines)}
+  </div>
+</div>
+""", unsafe_allow_html=True)
+
+                # ─────────────────────────────────────────────────────────
+                # STEP 5 — Elbow helper (optional)
+                # ─────────────────────────────────────────────────────────
                 if show_elbow:
+                    st.markdown(km_step("5a", "How to Choose the Right Number of Groups?",
+                        "The 'elbow' chart helps you decide — look for the bend in the curve"), unsafe_allow_html=True)
+
+                    st.markdown(
+                        '<div class="km-explainer"><p>'
+                        'The chart below shows how "compact" the groups are for different values of K. '
+                        'A lower score means groups are tighter. '
+                        'The best K is usually where the curve starts to flatten out — like an elbow. '
+                        'Beyond that point, adding more groups gives diminishing returns.'
+                        '</p></div>',
+                        unsafe_allow_html=True
+                    )
+
                     elbow_ks = range(2, min(9, len(X_unsup)))
                     inertias = []
                     for ek in elbow_ks:
                         em = ManualKMeans(k=ek, max_iter=200, random_state=42)
                         em.fit(X_unsup)
                         inertias.append(em.inertia_)
-                    fig_elb, ax_elb = plt.subplots(figsize=(7, 3.5))
-                    ax_elb.plot(list(elbow_ks), inertias, color=ACCENT7, linewidth=2, marker="o",
-                                markersize=7, markerfacecolor=ACCENT4, markeredgecolor=AXES_BG)
-                    ax_elb.axvline(km_k, color=ACCENT3, linewidth=1.5, linestyle="--", label=f"K={km_k}")
-                    ax_elb.set_xlabel("Number of Clusters (K)"); ax_elb.set_ylabel("Inertia (WCSS)")
-                    ax_elb.set_title("Elbow Method — Optimal K Selection")
-                    ax_elb.legend(fontsize=8, framealpha=0.2, labelcolor=TEXT_CLR)
-                    apply_theme(fig_elb, ax_elb); fig_elb.tight_layout()
-                    st.pyplot(fig_elb); plt.close()
 
-                # ── Scatter plot (PC1 vs PC2 if >2 features) ─────────────
-                if X_unsup.shape[1] == 2:
-                    plot_X = X_unsup
-                    ax_labels = [unsup_feats[0], unsup_feats[1]]
-                else:
-                    pca_viz = ManualPCA(n_components=2)
-                    plot_X = pca_viz.fit_transform(X_unsup)
-                    var_r  = pca_viz.explained_variance_ratio_
-                    ax_labels = [f"PC1 ({var_r[0]*100:.1f}% var)", f"PC2 ({var_r[1]*100:.1f}% var)"]
+                    fig_elb, ax_elb = plt.subplots(figsize=(7, 3.8))
+                    ax_elb.plot(list(elbow_ks), inertias,
+                                color=ACCENT7, linewidth=2.5, marker="o",
+                                markersize=9, markerfacecolor=ACCENT4,
+                                markeredgecolor=AXES_BG, markeredgewidth=1.5)
+                    ax_elb.axvline(km_k_used, color=ACCENT3, linewidth=2,
+                                   linestyle="--", label=f"Your choice: K={km_k_used}")
+                    # Annotate the chosen K
+                    chosen_idx = km_k_used - 2
+                    if 0 <= chosen_idx < len(inertias):
+                        ax_elb.annotate(
+                            f"K={km_k_used}\n(selected)",
+                            xy=(km_k_used, inertias[chosen_idx]),
+                            xytext=(km_k_used + 0.4, inertias[chosen_idx] * 1.05),
+                            fontsize=8, color=ACCENT3,
+                            arrowprops=dict(arrowstyle="->", color=ACCENT3, lw=1.2),
+                        )
+                    ax_elb.set_xlabel("Number of Groups (K)", fontsize=10)
+                    ax_elb.set_ylabel("Group Compactness Score\n(lower = tighter groups)", fontsize=9)
+                    ax_elb.set_title("Finding the Best Number of Groups — Elbow Chart", fontsize=11)
+                    ax_elb.legend(fontsize=8.5, framealpha=0.2, labelcolor=TEXT_CLR,
+                                  facecolor=AXES_BG, edgecolor=GRID_CLR)
+                    apply_theme(fig_elb, ax_elb)
+                    fig_elb.tight_layout()
+                    st.pyplot(fig_elb)
+                    plt.close()
+                    st.markdown(
+                        '<p class="km-elbow-hint">Tip: the red dashed line shows your currently selected K. '
+                        'If it is past the elbow, you may have too many groups.</p>',
+                        unsafe_allow_html=True
+                    )
 
-                fig_km, ax_km = plt.subplots(figsize=(8, 5))
-                for cid in range(km_k):
-                    mask = km_labels == cid
-                    clr  = CLUSTER_PALETTE[cid % len(CLUSTER_PALETTE)]
-                    ax_km.scatter(plot_X[mask, 0], plot_X[mask, 1],
-                                  s=30, color=clr, alpha=0.7, edgecolors="none",
-                                  label=f"Cluster {cid} (n={mask.sum()})")
-                # Plot centroids — use "P" (filled plus) instead of unicode star
-                if X_unsup.shape[1] > 2:
-                    c_proj = pca_viz.transform(km_centroids)
-                else:
-                    c_proj = km_centroids
-                ax_km.scatter(c_proj[:, 0], c_proj[:, 1], s=220, marker="P",
-                              color=ACCENT4, edgecolors="#fff", linewidth=0.8, zorder=5, label="Centroids")
-                ax_km.set_xlabel(ax_labels[0]); ax_km.set_ylabel(ax_labels[1])
-                ax_km.set_title(f"K-Means Clustering (K={km_k}) — Scatter Plot")
-                ax_km.legend(fontsize=7, framealpha=0.15, labelcolor=TEXT_CLR, loc="best")
-                apply_theme(fig_km, ax_km); fig_km.tight_layout()
-                st.pyplot(fig_km); plt.close()
+                # ─────────────────────────────────────────────────────────
+                # STEP 5 (or 5b) — Plain-language insights
+                # ─────────────────────────────────────────────────────────
+                st.markdown(km_step("5b" if show_elbow else "5", "Key Takeaways",
+                    "Plain-language summary of what the clustering found"), unsafe_allow_html=True)
 
-                # ── Cluster profile table (mean values per cluster) ───────
-                st.markdown("#### Cluster Profiles — Mean Feature Values per Cluster")
-                profile_data = data[unsup_feats].copy()
-                profile_data["Cluster"] = km_labels
-                cluster_profile = profile_data.groupby("Cluster")[unsup_feats].mean().round(3)
-                st.dataframe(cluster_profile, use_container_width=True)
+                insights = []
 
-                # ── Insights ──────────────────────────────────────────────
-                st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
-                st.markdown("#### K-Means Insights")
-                if km_sil > 0.5:
-                    st.markdown(f'<div class="insight-unsup">✅ Strong cluster structure — Silhouette Score = {km_sil:.4f} (> 0.5)</div>', unsafe_allow_html=True)
-                elif km_sil > 0.25:
-                    st.markdown(f'<div class="insight-neu">⚠ Moderate cluster structure — Silhouette Score = {km_sil:.4f}</div>', unsafe_allow_html=True)
-                else:
-                    st.markdown(f'<div class="insight-neg">⚠ Weak cluster structure — Silhouette Score = {km_sil:.4f}. Consider adjusting K.</div>', unsafe_allow_html=True)
+                # 1. Overall quality
+                if not np.isnan(km_sil):
+                    if km_sil > 0.5:
+                        insights.append(("✅", "Grouping Quality",
+                            f"The {km_k_used} groups are well-separated and clearly defined "
+                            f"(quality score: {km_sil:.2f} out of 1.0). "
+                            "You can trust these groups represent real patterns in the data."))
+                    elif km_sil > 0.25:
+                        insights.append(("⚠️", "Grouping Quality",
+                            f"The groups have reasonable separation but some overlap "
+                            f"(quality score: {km_sil:.2f}). "
+                            "Consider trying K=2 or K=4 to see if you get cleaner groups."))
+                    else:
+                        insights.append(("❌", "Grouping Quality",
+                            f"The groups overlap significantly (quality score: {km_sil:.2f}). "
+                            "The data may not have strong natural clusters, or more/fewer groups may help."))
 
-                uniq_c, cnt_c = np.unique(km_labels, return_counts=True)
-                dominant = uniq_c[cnt_c.argmax()]
-                st.markdown(f'<div class="insight-unsup">🔵 Largest cluster: <strong>Cluster {dominant}</strong> with {cnt_c.max()} points ({cnt_c.max()/len(km_labels)*100:.1f}%)</div>', unsafe_allow_html=True)
-                st.markdown(f'<div class="insight-neu">⚙ Converged in {km_model.n_iter_} iterations out of max {km_maxiter}</div>', unsafe_allow_html=True)
+                # 2. Largest group
+                dominant_id  = uniq_c[cnt_c.argmax()]
+                dominant_cnt = int(cnt_c.max())
+                insights.append(("🔵", "Largest Group",
+                    f"Group {dominant_id + 1} is the largest, containing {dominant_cnt:,} records "
+                    f"({dominant_cnt/n_points*100:.1f}% of the dataset). "
+                    f"This group represents the most common type of record in your data."))
+
+                # 3. Smallest group
+                if km_k_used > 2:
+                    smallest_id  = uniq_c[cnt_c.argmin()]
+                    smallest_cnt = int(cnt_c.min())
+                    if smallest_cnt / n_points < 0.08:
+                        insights.append(("🔴", "Small Group Alert",
+                            f"Group {smallest_id + 1} is very small ({smallest_cnt:,} records, "
+                            f"{smallest_cnt/n_points*100:.1f}%). "
+                            "This may represent rare or unusual records worth investigating."))
+                    else:
+                        insights.append(("🟢", "Balanced Groups",
+                            f"The smallest group (Group {smallest_id + 1}) has {smallest_cnt:,} records "
+                            f"({smallest_cnt/n_points*100:.1f}%) — reasonably balanced across groups."))
+
+                # 4. Most differentiating feature (feature with highest between-group variance)
+                between_var = {}
+                for f in unsup_feats:
+                    group_means_f = [
+                        data[unsup_feats + ["__cluster__" if "__cluster__" in data.columns else unsup_feats[0]]].copy()
+                    ]
+                    gm = cluster_profile_raw[f]
+                    between_var[f] = float(gm.std())
+                best_diff_feat = max(between_var, key=between_var.get)
+                insights.append(("📊", "Most Differentiating Feature",
+                    f'"{best_diff_feat}" varies the most across groups — '
+                    "it is the strongest signal distinguishing your groups from one another."))
+
+                # 5. Balance check
+                balance_ratio = float(cnt_c.min() / cnt_c.max())
+                if balance_ratio > 0.6:
+                    insights.append(("⚖️", "Group Balance",
+                        "Groups are roughly equal in size — this suggests the data is evenly spread "
+                        "across the different types."))
+                elif balance_ratio < 0.2:
+                    insights.append(("⚖️", "Group Balance",
+                        "Groups are very unequal in size. This is normal for real-world data "
+                        "where some types of records are much rarer than others."))
+
+                for icon_i, title_i, body_i in insights:
+                    st.markdown(f"""
+<div class="km-insight-row">
+  <div class="km-insight-icon">{icon_i}</div>
+  <div>
+    <div class="km-insight-title">{title_i}</div>
+    <div class="km-insight-body">{body_i}</div>
+  </div>
+</div>
+""", unsafe_allow_html=True)
+
+                # Summary strip at the very bottom
+                st.markdown('<div style="margin-top:18px;"></div>', unsafe_allow_html=True)
+                strip = '<div class="km-summary-strip">'
+                strip_items = [
+                    (str(km_k_used), "Groups Found"),
+                    (f"{n_points:,}", "Records Analysed"),
+                    (f"{len(unsup_feats)}", "Features Used"),
+                    (f"{km_sil:.2f}" if not np.isnan(km_sil) else "N/A", "Quality Score"),
+                ]
+                for v_s, l_s in strip_items:
+                    strip += (f'<div class="km-summary-tile">'
+                              f'<div class="kmt-val">{v_s}</div>'
+                              f'<div class="kmt-lbl">{l_s}</div>'
+                              f'</div>')
+                strip += '</div>'
+                st.markdown(strip, unsafe_allow_html=True)
+
 
         # ══════════════════════════════════════════════════════════════════
-        # APRIORI — ASSOCIATION RULES
+        # APRIORI — ASSOCIATION RULES  (unchanged)
         # ══════════════════════════════════════════════════════════════════
         if unsup_algo == "Apriori — Association Rules":
             st.markdown('<div class="module-banner" style="border-left-color:#d05090;">'
@@ -1961,7 +2344,6 @@ else:
                     st.warning("Select at least 2 features for Apriori.")
                 else:
                     with st.spinner("Building transactions and running Manual Apriori…"):
-                        # ── Discretize numeric features ───────────────────
                         sub_data = data[ap_feats_sel].head(ap_max_rows).copy()
                         disc_data = pd.DataFrame()
                         for feat in ap_feats_sel:
@@ -1971,7 +2353,6 @@ else:
                             except Exception:
                                 disc_data[feat] = col.astype(str)
 
-                        # ── Build transaction list ─────────────────────────
                         transactions = []
                         for _, row in disc_data.iterrows():
                             t = frozenset(f"{feat}={val}" for feat, val in row.items() if pd.notna(val))
@@ -1984,7 +2365,6 @@ else:
                             apriori_model = ManualApriori(min_support=ap_min_sup, min_confidence=ap_min_conf)
                             apriori_model.fit(transactions)
 
-                    # ── Metrics ───────────────────────────────────────────
                     mc = '<div class="card-grid">'
                     for v, l in [(str(len(transactions)), "Transactions"),
                                  (str(len(apriori_model.frequent_itemsets_)), "Frequent Itemsets"),
@@ -1994,7 +2374,6 @@ else:
                     mc += '</div>'
                     st.markdown(mc, unsafe_allow_html=True)
 
-                    # ── Frequent itemsets ─────────────────────────────────
                     if apriori_model.frequent_itemsets_:
                         st.markdown("#### Frequent Itemsets (sorted by support)")
                         fi_rows = sorted(
@@ -2006,11 +2385,8 @@ else:
                     else:
                         st.warning("No frequent itemsets found. Try lowering min_support.")
 
-                    # ── Association rules ─────────────────────────────────
                     if apriori_model.rules_:
                         st.markdown(f'#### Association Rules ({len(apriori_model.rules_)} found, sorted by lift)')
-
-                        # Rules table
                         rules_rows = []
                         for r in apriori_model.rules_[:30]:
                             ant_str = " & ".join(sorted(r["antecedent"]))
@@ -2024,7 +2400,6 @@ else:
                         rules_df = pd.DataFrame(rules_rows)
                         st.dataframe(rules_df, use_container_width=True, hide_index=True)
 
-                        # ── Top 5 rules as styled cards ───────────────────
                         st.markdown("#### Top 5 Rules by Lift")
                         for r in apriori_model.rules_[:5]:
                             ant_str = " & ".join(sorted(r["antecedent"]))
@@ -2041,7 +2416,6 @@ else:
                                 unsafe_allow_html=True
                             )
 
-                        # ── Support vs Confidence scatter plot ────────────
                         if len(rules_rows) > 1:
                             sups  = [r["support"] for r in apriori_model.rules_[:50]]
                             confs = [r["confidence"] for r in apriori_model.rules_[:50]]
@@ -2056,7 +2430,6 @@ else:
                             apply_theme(fig_ar, ax_ar); fig_ar.tight_layout()
                             st.pyplot(fig_ar); plt.close()
 
-                        # ── Insights ──────────────────────────────────────
                         st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
                         st.markdown("#### Apriori Insights")
                         best_rule = apriori_model.rules_[0]
@@ -2080,7 +2453,7 @@ else:
 st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
 st.markdown('<div style="text-align:center;padding:14px 0;font-family:JetBrains Mono,monospace;'
             'font-size:0.68rem;color:#1d3a54;letter-spacing:0.1em;">'
-            'INTELLIGENT DATA ANALYSIS &amp; ML SYSTEM v7 · AUTO REGRESSION / CLASSIFICATION · '
+            'INTELLIGENT DATA ANALYSIS &amp; ML SYSTEM v8 · AUTO REGRESSION / CLASSIFICATION · '
             'UNSUPERVISED: K-MEANS · APRIORI ASSOCIATION RULES · '
             'SUPPORTS NUMERIC &amp; CATEGORICAL FEATURES/TARGETS'
             '</div>', unsafe_allow_html=True)
