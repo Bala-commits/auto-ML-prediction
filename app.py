@@ -1,7 +1,7 @@
 # ════════════════════════════════════════════════════════════════════════
 #  Intelligent Data Analysis & ML System  —  v10 + Landing UI
 #  All original functionality preserved.
-#  NEW: Interactive landing page shown before dataset upload.
+#  FIXED: Top Dataset Insights — numeric column snapshots + histograms
 # ════════════════════════════════════════════════════════════════════════
 import streamlit as st
 import pandas as pd
@@ -38,7 +38,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# ═══════════════════ GLOBAL CSS (Original + Landing) ═══════════════════
+# ═══════════════════ GLOBAL CSS ═══════════════════
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Inter:wght@300;400;500;600&display=swap');
@@ -197,24 +197,13 @@ h1,h2,h3{font-family:'JetBrains Mono',monospace;color:var(--bright);letter-spaci
 .km-quality-strong{background:#0a2e1e;color:#22e8a0;border:1px solid #1a6040;}
 .km-quality-moderate{background:#2a2008;color:#e0a844;border:1px solid #5a4010;}
 .km-quality-weak{background:#2a0808;color:#e07070;border:1px solid #5a2020;}
-@keyframes cardFadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-.algo-card{background:linear-gradient(135deg,#081828 0%,#060f1c 100%);border:1px solid #1a3a54;border-radius:12px;padding:0;margin:14px 0 18px 0;overflow:hidden;animation:cardFadeIn 0.4s ease both;}
-.algo-card-inner{padding:20px 24px 22px;}
-.algo-card-header{display:flex;align-items:center;gap:14px;margin-bottom:14px;}
-.algo-card-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;}
-.algo-card-name{font-family:'JetBrains Mono',monospace;font-size:1.05rem;font-weight:700;color:#a8ccde;line-height:1.2;}
-.algo-card-tag{font-family:'JetBrains Mono',monospace;font-size:0.65rem;letter-spacing:0.14em;text-transform:uppercase;margin-top:3px;}
-.algo-card-summary{font-size:0.83rem;color:#a0bfd4;line-height:1.7;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid #0f2236;}
-.algo-pill{font-family:'JetBrains Mono',monospace;font-size:0.62rem;font-weight:600;letter-spacing:0.1em;padding:3px 10px;border-radius:4px;}
-.algo-pill-blue{background:#0c2034;color:#6dc8f0;border:1px solid #1a4060;}
-.algo-pill-green{background:#0a2318;color:#22e8a0;border:1px solid #1a5038;}
-.algo-pill-amber{background:#1e1400;color:#e0a844;border:1px solid #4a3800;}
-.algo-pill-red{background:#200a0a;color:#e07070;border:1px solid #4a1818;}
-.algo-pill-purple{background:#150a24;color:#c890f0;border:1px solid #3a1a5a;}
 .noise-badge{display:inline-block;background:#2a0a1a;border:1px solid #6a2050;color:#f080c0;font-family:'JetBrains Mono',monospace;font-size:0.72rem;padding:4px 12px;border-radius:4px;margin:4px 0;}
 .cluster-info-card{background:linear-gradient(135deg,#081828 0%,#060f1c 100%);border:1px solid #1a3a54;border-radius:8px;padding:14px 18px;margin:8px 0;}
 .cluster-info-card .ci-header{font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:var(--a2);font-weight:700;margin-bottom:6px;}
 .cluster-info-card .ci-body{font-size:0.78rem;color:var(--text);line-height:1.6;}
+/* ── Numeric Snapshot Card ── */
+.num-snap-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;}
+.num-snap-title{font-family:'JetBrains Mono',monospace;font-size:0.76rem;color:var(--a1);margin-bottom:8px;}
 /* ═══════════ LANDING PAGE CSS ═══════════ */
 .landing-hero{text-align:center;padding:52px 20px 40px;position:relative;}
 .landing-hero::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:700px;height:2px;background:linear-gradient(90deg,transparent,#2d8fcb 30%,#22a878 70%,transparent);}
@@ -241,9 +230,10 @@ h1,h2,h3{font-family:'JetBrains Mono',monospace;color:var(--bright);letter-spaci
 .feat-card-pills{display:flex;flex-wrap:wrap;gap:5px;}
 .feat-pill{font-family:'JetBrains Mono',monospace;font-size:0.58rem;letter-spacing:0.07em;padding:2px 9px;border-radius:3px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);color:#4a7a96;transition:background 0.2s,color 0.2s;}
 .feat-card:hover .feat-pill{background:rgba(255,255,255,0.06);color:#6a9ab6;}
+.upload-btn-container .stButton>button{background:linear-gradient(135deg,#1a5a8a 0%,#0e3a5e 100%) !important;border:1px solid #2d8fcb !important;color:#c4dff0 !important;font-family:'JetBrains Mono',monospace !important;font-size:0.88rem !important;letter-spacing:0.10em !important;padding:12px 40px !important;border-radius:8px !important;transition:all 0.25s ease !important;text-transform:uppercase !important;}
+.upload-btn-container .stButton>button:hover{background:linear-gradient(135deg,#2d8fcb 0%,#1a6aaa 100%) !important;box-shadow:0 8px 28px rgba(45,143,203,0.35) !important;transform:translateY(-2px) !important;}
 </style>
 """, unsafe_allow_html=True)
-
 
 PLOT_BG="#060d18";AXES_BG="#0b1628";GRID_CLR="#0f2236";TEXT_CLR="#7ea8c4"
 ACCENT1="#2d8fcb";ACCENT2="#22a878";ACCENT3="#c05555";ACCENT4="#e0a844"
@@ -494,13 +484,13 @@ EXPLAINER_DATA={
     "KNN":{"color":"#a060c8","icon":"🗺️","tag":"Regression & Classification · Non-parametric · Manual","summary":"Predicts by averaging the K nearest training examples.","analogy":"Asking your K nearest neighbours for advice and averaging their answers.","strengths":["Zero training time","Captures non-linearity","No distribution assumptions"],"weaknesses":["Slow prediction","Bad in high dimensions","Sensitive to K"],"when_to_use":"Small-to-medium datasets with local, non-linear patterns.","pills":[("Non-parametric","algo-pill-purple"),("No training","algo-pill-blue"),("Slow predict","algo-pill-amber")]},
     "Decision Tree":{"color":"#c05555","icon":"🌳","tag":"Regression & Classification · Tree · sklearn","summary":"Learns a series of yes/no questions to split data into pure groups.","analogy":"A flowchart of questions splitting the data step by step.","strengths":["Fully interpretable","Handles mixed types","No preprocessing"],"weaknesses":["Overfits easily","Unstable","Piecewise-constant predictions"],"when_to_use":"When interpretability is the top priority.","pills":[("Interpretable","algo-pill-green"),("No preprocessing","algo-pill-blue"),("Overfits","algo-pill-red")]},
     "Random Forest":{"color":"#d05090","icon":"🌲","tag":"Regression & Classification · Ensemble · sklearn","summary":"Hundreds of Decision Trees trained on random subsets — aggregate their votes.","analogy":"100 experts each seeing partial evidence then voting collectively.","strengths":["High accuracy","Resistant to overfitting","Feature importance"],"weaknesses":["Slow to predict","Black box","Memory-heavy"],"when_to_use":"First serious model on any tabular dataset.","pills":[("Ensemble","algo-pill-green"),("High accuracy","algo-pill-green"),("Feature importance","algo-pill-blue")]},
-    "SVR":{"color":"#44c8e0","icon":"📐","tag":"Regression · Kernel · sklearn","summary":"Support Vector Regression finds a tube of width ε around the data. Only points outside the tube influence the model. RBF kernel allows non-linear curves.","analogy":"Drawing the widest possible road through your data — only the cars that fall off the road edge matter.","strengths":["Works well in high dimensions","Robust to outliers inside ε-tube","Non-linear via RBF"],"weaknesses":["Slow on large datasets","Needs feature scaling","C, ε, γ need tuning"],"when_to_use":"Medium-sized datasets where non-linear relationship exists and you need outlier robustness.","pills":[("Kernel trick","algo-pill-blue"),("Non-linear","algo-pill-green"),("Needs scaling","algo-pill-amber"),("Slow on big data","algo-pill-red")]},
-    "Polynomial":{"color":"#e07030","icon":"〽️","tag":"Regression · Manual · Polynomial Features","summary":"Extends Linear Regression by adding squared/cubed/interaction terms, then fits OLS through them.","analogy":"Instead of fitting a straight ruler, you bend it into a curve by adding x² as an extra column.","strengths":["Captures non-linear trends","Still uses interpretable OLS formula","Manual — full transparency"],"weaknesses":["Feature explosion with high degree","Prone to overfitting at d≥4","Blows up outside training range"],"when_to_use":"When the relationship is clearly curved (U-shaped) but you want to keep it simple. Use degree=2 first.","pills":[("Manual OLS","algo-pill-green"),("Curved patterns","algo-pill-blue"),("Overfits at d≥4","algo-pill-red"),("Feature explosion","algo-pill-amber")]},
-    "Gradient Boosting":{"color":"#70c040","icon":"🚀","tag":"Regression & Classification · Ensemble · sklearn","summary":"Builds trees one at a time, where each new tree corrects errors of all previous trees.","analogy":"A student who studies only the questions they got wrong — improving with each round.","strengths":["Most accurate on structured data","Handles mixed feature types","Robust with tuning"],"weaknesses":["Slow (sequential)","Many hyperparameters","Can overfit"],"when_to_use":"When accuracy is the primary goal and you have compute time.","pills":[("Highest accuracy","algo-pill-green"),("Boosting ensemble","algo-pill-blue"),("Sequential train","algo-pill-amber"),("Many HPs","algo-pill-amber")]},
+    "SVR":{"color":"#44c8e0","icon":"📐","tag":"Regression · Kernel · sklearn","summary":"Support Vector Regression finds a tube of width ε around the data.","analogy":"Drawing the widest possible road through your data.","strengths":["Works well in high dimensions","Robust to outliers inside ε-tube","Non-linear via RBF"],"weaknesses":["Slow on large datasets","Needs feature scaling","C, ε, γ need tuning"],"when_to_use":"Medium-sized datasets where non-linear relationship exists.","pills":[("Kernel trick","algo-pill-blue"),("Non-linear","algo-pill-green"),("Needs scaling","algo-pill-amber"),("Slow on big data","algo-pill-red")]},
+    "Polynomial":{"color":"#e07030","icon":"〽️","tag":"Regression · Manual · Polynomial Features","summary":"Extends Linear Regression by adding squared/cubed/interaction terms, then fits OLS through them.","analogy":"Instead of fitting a straight ruler, you bend it into a curve.","strengths":["Captures non-linear trends","Still uses interpretable OLS formula","Manual — full transparency"],"weaknesses":["Feature explosion with high degree","Prone to overfitting at d≥4","Blows up outside training range"],"when_to_use":"When the relationship is clearly curved. Use degree=2 first.","pills":[("Manual OLS","algo-pill-green"),("Curved patterns","algo-pill-blue"),("Overfits at d≥4","algo-pill-red"),("Feature explosion","algo-pill-amber")]},
+    "Gradient Boosting":{"color":"#70c040","icon":"🚀","tag":"Regression & Classification · Ensemble · sklearn","summary":"Builds trees one at a time, where each new tree corrects errors of all previous trees.","analogy":"A student who studies only the questions they got wrong.","strengths":["Most accurate on structured data","Handles mixed feature types","Robust with tuning"],"weaknesses":["Slow (sequential)","Many hyperparameters","Can overfit"],"when_to_use":"When accuracy is the primary goal and you have compute time.","pills":[("Highest accuracy","algo-pill-green"),("Boosting ensemble","algo-pill-blue"),("Sequential train","algo-pill-amber"),("Many HPs","algo-pill-amber")]},
     "Logistic":{"color":"#2d8fcb","icon":"📊","tag":"Classification · Manual","summary":"Estimates class probabilities via softmax; predicts the highest.","analogy":"Weighted voting system converting raw scores to percentage chances.","strengths":["Fast","Calibrated probabilities","Interpretable"],"weaknesses":["Linear boundary","Struggles with non-linear separation","Needs scaling"],"when_to_use":"When you need probabilities and classes are roughly linearly separable.","pills":[("Interpretable","algo-pill-green"),("Outputs probs","algo-pill-blue"),("Linear boundary","algo-pill-amber")]},
     "Naive Bayes":{"color":"#e0a844","icon":"🧮","tag":"Classification · Probabilistic · Manual","summary":"Bayes' theorem assuming all features are independent.","analogy":"A spam filter multiplying per-word probabilities assuming independence.","strengths":["Extremely fast","Low data needs","Robust"],"weaknesses":["Independence rarely true","Poor with correlated features","No interactions"],"when_to_use":"Scarce data, fast baselines, or text classification.","pills":[("Very fast","algo-pill-green"),("Probabilistic","algo-pill-blue"),("Strong independence","algo-pill-red")]},
-    "SVM":{"color":"#44c8e0","icon":"🏹","tag":"Classification · Kernel · sklearn","summary":"Finds the widest margin hyperplane separating classes. RBF kernel separates non-linearly separable data.","analogy":"Drawing the fattest possible line between two groups — positioned by only the dots at the edge.","strengths":["Effective in high dimensions","Robust to outliers","Flexible via kernels"],"weaknesses":["Slow on large datasets","Requires feature scaling","No direct probability output"],"when_to_use":"Small-to-medium datasets with complex non-linear decision boundary.","pills":[("Max margin","algo-pill-green"),("Kernel trick","algo-pill-blue"),("Needs scaling","algo-pill-amber"),("Slow on large","algo-pill-red")]},
-    "XGBoost":{"color":"#e07030","icon":"⚡","tag":"Classification · XGBoost · sklearn-compatible","summary":"Optimised parallelised gradient boosting with L1/L2 regularisation and native missing value handling.","analogy":"Like Gradient Boosting with a turbocharger — faster, regularised, handles missing values.","strengths":["Extremely fast (parallelised)","Regularised","Handles missing values"],"weaknesses":["Many hyperparameters","Hard to interpret","Requires separate install"],"when_to_use":"Competition-style tabular classification where maximum accuracy is required.","pills":[("Fastest boosting","algo-pill-green"),("Regularised","algo-pill-blue"),("Handles NaN","algo-pill-blue"),("Many HPs","algo-pill-amber")]},
+    "SVM":{"color":"#44c8e0","icon":"🏹","tag":"Classification · Kernel · sklearn","summary":"Finds the widest margin hyperplane separating classes. RBF kernel separates non-linearly separable data.","analogy":"Drawing the fattest possible line between two groups.","strengths":["Effective in high dimensions","Robust to outliers","Flexible via kernels"],"weaknesses":["Slow on large datasets","Requires feature scaling","No direct probability output"],"when_to_use":"Small-to-medium datasets with complex non-linear decision boundary.","pills":[("Max margin","algo-pill-green"),("Kernel trick","algo-pill-blue"),("Needs scaling","algo-pill-amber"),("Slow on large","algo-pill-red")]},
+    "XGBoost":{"color":"#e07030","icon":"⚡","tag":"Classification · XGBoost · sklearn-compatible","summary":"Optimised parallelised gradient boosting with L1/L2 regularisation.","analogy":"Like Gradient Boosting with a turbocharger — faster, regularised.","strengths":["Extremely fast (parallelised)","Regularised","Handles missing values"],"weaknesses":["Many hyperparameters","Hard to interpret","Requires separate install"],"when_to_use":"Competition-style tabular classification where maximum accuracy is required.","pills":[("Fastest boosting","algo-pill-green"),("Regularised","algo-pill-blue"),("Handles NaN","algo-pill-blue"),("Many HPs","algo-pill-amber")]},
 }
 _PILL_STYLES={"algo-pill-blue":("#6dc8f0","#0c2034","#1a4060"),"algo-pill-green":("#22e8a0","#0a2318","#1a5038"),"algo-pill-amber":("#e0a844","#1e1400","#4a3800"),"algo-pill-red":("#e07070","#200a0a","#4a1818"),"algo-pill-purple":("#c890f0","#150a24","#3a1a5a")}
 
@@ -509,18 +499,18 @@ def _pill_inline(label,ct,cb,cbr):
 
 def render_explainer_card(model_name,mode="regression"):
     import streamlit.components.v1 as components
-    data=EXPLAINER_DATA.get(model_name)
-    if data is None: st.markdown(f'<div class="problem-explain-box">No explainer for <strong>{model_name}</strong>.</div>',unsafe_allow_html=True);return
-    color=data["color"];pills_html=""
-    for lbl,css_cls in data["pills"]:
+    data_e=EXPLAINER_DATA.get(model_name)
+    if data_e is None: st.markdown(f'<div class="problem-explain-box">No explainer for <strong>{model_name}</strong>.</div>',unsafe_allow_html=True);return
+    color=data_e["color"];pills_html=""
+    for lbl,css_cls in data_e["pills"]:
         ct,cb,cbr=_PILL_STYLES.get(css_cls,("#a8ccde","#0b1628","#0f2236"));pills_html+=_pill_inline(lbl,ct,cb,cbr)
     li_style='style="padding:3px 0;color:#7ea8c4;font-size:0.78rem;"'
     def make_li(items): return "".join(f'<li {li_style}>{x}</li>' for x in items)
     def detail_box(lbl,lbl_color,content):
         return f'<div style="background:#060d18;border:1px solid #0f2236;border-radius:8px;padding:12px 14px;"><div style="font-family:JetBrains Mono,monospace;font-size:0.64rem;letter-spacing:0.14em;text-transform:uppercase;color:{lbl_color};margin-bottom:8px;">{lbl}</div><div style="font-size:0.78rem;color:#7ea8c4;line-height:1.65;">{content}</div></div>'
-    grid_html='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;">'+detail_box("Real-world analogy","#e0a844",data["analogy"])+detail_box("Strengths","#22a878",f'<ul style="list-style:none;padding:0;margin:0;">{make_li(data["strengths"])}</ul>')+detail_box("Limitations","#c05555",f'<ul style="list-style:none;padding:0;margin:0;">{make_li(data["weaknesses"])}</ul>')+'</div>'
-    card=f'<!DOCTYPE html><html><head><meta charset="utf-8"><style>@import url(\'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;500&display=swap\');*{{box-sizing:border-box;margin:0;padding:0;}}body{{background:transparent;font-family:\'Inter\',sans-serif;}}@keyframes cardIn{{from{{opacity:0;transform:translateY(8px)}}to{{opacity:1;transform:translateY(0)}}}}.card{{animation:cardIn 0.35s ease both;}}li::before{{content:"› ";color:#2d8fcb;}}</style></head><body><div class="card" style="background:linear-gradient(135deg,#081828 0%,#060f1c 100%);border:1px solid #1a3a54;border-radius:12px;overflow:hidden;margin:4px 0 12px;"><div style="height:4px;background:{color};width:100%;"></div><div style="padding:20px 24px 22px;"><div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;"><div style="width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;background:{color}22;border:1px solid {color}44;">{data["icon"]}</div><div><div style="font-family:JetBrains Mono,monospace;font-size:1.05rem;font-weight:700;color:#a8ccde;">{model_name}</div><div style="font-family:JetBrains Mono,monospace;font-size:0.65rem;letter-spacing:0.14em;text-transform:uppercase;color:{color};margin-top:3px;">{data["tag"]}</div></div></div><div style="margin-bottom:14px;">{pills_html}</div><div style="font-size:0.83rem;color:#a0bfd4;line-height:1.7;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid #0f2236;">{data["summary"]}</div>{grid_html}<div style="display:flex;align-items:flex-start;gap:10px;background:#060f1c;border:1px solid #0f2236;border-radius:8px;padding:11px 14px;font-size:0.78rem;color:#7ea8c4;line-height:1.6;"><span style="font-size:1rem;min-width:20px;">💡</span><div><span style="font-family:JetBrains Mono,monospace;font-size:0.68rem;color:#2d8fcb;letter-spacing:0.12em;text-transform:uppercase;">When to use</span><br>{data["when_to_use"]}</div></div></div></div></body></html>'
-    components.html(card,height=400+max(len(data["strengths"]),len(data["weaknesses"]))*28,scrolling=False)
+    grid_html='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;">'+detail_box("Real-world analogy","#e0a844",data_e["analogy"])+detail_box("Strengths","#22a878",f'<ul style="list-style:none;padding:0;margin:0;">{make_li(data_e["strengths"])}</ul>')+detail_box("Limitations","#c05555",f'<ul style="list-style:none;padding:0;margin:0;">{make_li(data_e["weaknesses"])}</ul>')+'</div>'
+    card=f'<!DOCTYPE html><html><head><meta charset="utf-8"><style>@import url(\'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;500&display=swap\');*{{box-sizing:border-box;margin:0;padding:0;}}body{{background:transparent;font-family:\'Inter\',sans-serif;}}@keyframes cardIn{{from{{opacity:0;transform:translateY(8px)}}to{{opacity:1;transform:translateY(0)}}}} .card{{animation:cardIn 0.35s ease both;}}li::before{{content:"› ";color:#2d8fcb;}}</style></head><body><div class="card" style="background:linear-gradient(135deg,#081828 0%,#060f1c 100%);border:1px solid #1a3a54;border-radius:12px;overflow:hidden;margin:4px 0 12px;"><div style="height:4px;background:{color};width:100%;"></div><div style="padding:20px 24px 22px;"><div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;"><div style="width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;background:{color}22;border:1px solid {color}44;">{data_e["icon"]}</div><div><div style="font-family:JetBrains Mono,monospace;font-size:1.05rem;font-weight:700;color:#a8ccde;">{model_name}</div><div style="font-family:JetBrains Mono,monospace;font-size:0.65rem;letter-spacing:0.14em;text-transform:uppercase;color:{color};margin-top:3px;">{data_e["tag"]}</div></div></div><div style="margin-bottom:14px;">{pills_html}</div><div style="font-size:0.83rem;color:#a0bfd4;line-height:1.7;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid #0f2236;">{data_e["summary"]}</div>{grid_html}<div style="display:flex;align-items:flex-start;gap:10px;background:#060f1c;border:1px solid #0f2236;border-radius:8px;padding:11px 14px;font-size:0.78rem;color:#7ea8c4;line-height:1.6;"><span style="font-size:1rem;min-width:20px;">💡</span><div><span style="font-family:JetBrains Mono,monospace;font-size:0.68rem;color:#2d8fcb;letter-spacing:0.12em;text-transform:uppercase;">When to use</span><br>{data_e["when_to_use"]}</div></div></div></div></body></html>'
+    components.html(card,height=400+max(len(data_e["strengths"]),len(data_e["weaknesses"]))*28,scrolling=False)
 
 def render_all_explainers(mode="regression"):
     reg_models=["Linear","Ridge","Lasso","KNN","Decision Tree","Random Forest","SVR","Polynomial","Gradient Boosting"]
@@ -660,228 +650,13 @@ def build_report_text(mode,best_name,best_res,feature_names,top3,health_score,he
 # ════════════════════════════════════════════════════════════════════════
 # PRE-UPLOAD LANDING UI
 # ════════════════════════════════════════════════════════════════════════
-
-# Session state for uploader visibility
 if "show_uploader" not in st.session_state:
     st.session_state.show_uploader = False
 
-# Landing CSS
-st.markdown("""
-<style>
-/* ── Landing Wrapper ─────────────────────────────────────────────── */
-.landing-hero {
-    text-align: center;
-    padding: 48px 20px 36px;
-    position: relative;
-}
-.landing-hero::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 50%; transform: translateX(-50%);
-    width: 600px; height: 2px;
-    background: linear-gradient(90deg, transparent, #2d8fcb, #22a878, transparent);
-}
-.landing-badge {
-    display: inline-block;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.62rem;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    color: #22a878;
-    background: #0a2318;
-    border: 1px solid #1a5038;
-    padding: 4px 14px;
-    border-radius: 20px;
-    margin-bottom: 18px;
-}
-.landing-title {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 2.6rem;
-    font-weight: 700;
-    color: #c4dff0;
-    letter-spacing: -0.04em;
-    line-height: 1.15;
-    margin-bottom: 14px;
-}
-.landing-title span {
-    background: linear-gradient(135deg, #2d8fcb, #22e8a0);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-.landing-sub {
-    font-size: 0.95rem;
-    color: #7ea8c4;
-    max-width: 520px;
-    margin: 0 auto 10px;
-    line-height: 1.7;
-}
-.landing-stat-strip {
-    display: flex;
-    justify-content: center;
-    gap: 32px;
-    margin: 24px 0 0;
-    flex-wrap: wrap;
-}
-.landing-stat {
-    text-align: center;
-}
-.landing-stat-num {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 1.35rem;
-    font-weight: 700;
-    color: #2d8fcb;
-    line-height: 1;
-}
-.landing-stat-lbl {
-    font-size: 0.65rem;
-    color: #4a7a96;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    margin-top: 4px;
-}
-
-/* ── Feature Cards ───────────────────────────────────────────────── */
-@keyframes cardReveal {
-    from { opacity: 0; transform: translateY(18px); }
-    to   { opacity: 1; transform: translateY(0); }
-}
-.feat-card {
-    background: linear-gradient(145deg, #0c1e32 0%, #091525 100%);
-    border: 1px solid #0f2a40;
-    border-radius: 14px;
-    padding: 26px 22px 22px;
-    position: relative;
-    overflow: hidden;
-    transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
-    cursor: default;
-    animation: cardReveal 0.5s ease both;
-    height: 100%;
-    box-sizing: border-box;
-}
-.feat-card:hover {
-    transform: translateY(-5px) scale(1.01);
-    border-color: var(--card-accent, #2d8fcb);
-    box-shadow: 0 16px 40px rgba(0,0,0,0.5), 0 0 0 1px var(--card-accent, #2d8fcb);
-}
-.feat-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 3px;
-    background: var(--card-accent, #2d8fcb);
-    opacity: 0;
-    transition: opacity 0.25s ease;
-}
-.feat-card:hover::before {
-    opacity: 1;
-}
-.feat-card::after {
-    content: '';
-    position: absolute;
-    top: -40px; right: -40px;
-    width: 120px; height: 120px;
-    border-radius: 50%;
-    background: var(--card-accent, #2d8fcb);
-    opacity: 0.04;
-    transition: opacity 0.25s ease;
-}
-.feat-card:hover::after {
-    opacity: 0.10;
-}
-.feat-card-icon {
-    font-size: 2.0rem;
-    margin-bottom: 12px;
-    display: block;
-    line-height: 1;
-    filter: drop-shadow(0 0 12px var(--card-accent, #2d8fcb));
-}
-.feat-card-tag {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.60rem;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: var(--card-accent, #2d8fcb);
-    margin-bottom: 6px;
-    opacity: 0.85;
-}
-.feat-card-title {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 1.0rem;
-    font-weight: 700;
-    color: #b8d8ea;
-    margin-bottom: 8px;
-    line-height: 1.2;
-}
-.feat-card-desc {
-    font-size: 0.78rem;
-    color: #6a94b0;
-    line-height: 1.65;
-    margin-bottom: 14px;
-}
-.feat-card-pills {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-}
-.feat-pill {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.58rem;
-    letter-spacing: 0.08em;
-    padding: 2px 8px;
-    border-radius: 3px;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    color: #5a8aaa;
-}
-
-/* ── Upload CTA ──────────────────────────────────────────────────── */
-.upload-cta-wrapper {
-    text-align: center;
-    padding: 38px 20px 28px;
-    position: relative;
-}
-.upload-cta-wrapper::before {
-    content: '';
-    position: absolute;
-    bottom: 0; left: 50%; transform: translateX(-50%);
-    width: 400px; height: 1px;
-    background: linear-gradient(90deg, transparent, #0f2236, transparent);
-}
-.upload-hint {
-    font-size: 0.74rem;
-    color: #3a6a88;
-    margin-top: 10px;
-    font-family: 'JetBrains Mono', monospace;
-    letter-spacing: 0.06em;
-}
-
-/* ── Upload Button Override ──────────────────────────────────────── */
-.upload-btn-container .stButton > button {
-    background: linear-gradient(135deg, #1a5a8a 0%, #0e3a5e 100%) !important;
-    border: 1px solid #2d8fcb !important;
-    color: #c4dff0 !important;
-    font-family: 'JetBrains Mono', monospace !important;
-    font-size: 0.88rem !important;
-    letter-spacing: 0.10em !important;
-    padding: 12px 40px !important;
-    border-radius: 8px !important;
-    transition: all 0.25s ease !important;
-    text-transform: uppercase !important;
-}
-.upload-btn-container .stButton > button:hover {
-    background: linear-gradient(135deg, #2d8fcb 0%, #1a6aaa 100%) !important;
-    box-shadow: 0 8px 28px rgba(45,143,203,0.35) !important;
-    transform: translateY(-2px) !important;
-}
-</style>
-""", unsafe_allow_html=True)
-
-# ── Hero Section ──────────────────────────────────────────────────────
 st.markdown("""
 <div class="landing-hero">
   <div class="landing-badge">⬡ v10 · Production AI System</div>
-  <div class="landing-title">Intelligent Data Analysis<br>&amp; <span>ML System</span></div>
+  <div class="landing-title">Intelligent Data Analysis<br>&amp; <span class="grad">ML System</span></div>
   <div class="landing-sub">Upload your dataset to unlock powerful AI insights — automatic model selection, deep EDA, clustering, and prediction in one dashboard.</div>
   <div class="landing-stat-strip">
     <div class="landing-stat"><div class="landing-stat-num">9+</div><div class="landing-stat-lbl">Regression Models</div></div>
@@ -892,102 +667,40 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# ── Feature Cards Grid ────────────────────────────────────────────────
 CARDS = [
-    {
-        "icon": "📊",
-        "tag": "Module 1",
-        "title": "Data Analysis",
-        "desc": "Automatic EDA with statistical summaries, correlation matrices, outlier detection, and a data health score — all before writing a single line of code.",
-        "pills": ["Correlations", "Outliers", "Health Score", "Missing Values"],
-        "accent": "#2d8fcb",
-    },
-    {
-        "icon": "🤖",
-        "tag": "Module 2",
-        "title": "ML Models",
-        "desc": "Auto-detects regression vs classification. Trains 9+ regression and 7+ classification models simultaneously — Linear, Ridge, Lasso, SVM, Gradient Boosting, XGBoost and more.",
-        "pills": ["Auto-detect", "9 Regressors", "7+ Classifiers", "One Click"],
-        "accent": "#a060c8",
-    },
-    {
-        "icon": "📈",
-        "tag": "Module 4",
-        "title": "Visualization",
-        "desc": "Rich diagnostic charts for every model — actual vs predicted plots, residual analysis, confusion matrices, feature importances, and class probability distributions.",
-        "pills": ["Residuals", "Confusion Matrix", "Feature Importance", "Charts"],
-        "accent": "#22a878",
-    },
-    {
-        "icon": "🧠",
-        "tag": "Module 1–2",
-        "title": "Smart Insights",
-        "desc": "Auto-generated insights explain your data in plain English. Model grades (A–D), overfitting warnings, and actionable recommendations surfaced automatically.",
-        "pills": ["Plain English", "Model Grade", "Overfit Alert", "Recommendations"],
-        "accent": "#e0a844",
-    },
-    {
-        "icon": "⚡",
-        "tag": "Module 3",
-        "title": "Performance",
-        "desc": "Side-by-side model comparison tables with R², RMSE, F1, Accuracy, and overfitting gap. Best model auto-selected and highlighted with explainer cards.",
-        "pills": ["R² & RMSE", "F1 Score", "Ranking Table", "Best Model"],
-        "accent": "#44c8e0",
-    },
-    {
-        "icon": "🔍",
-        "tag": "Module 7",
-        "title": "Clustering & Discovery",
-        "desc": "Unsupervised learning suite: K-Means, DBSCAN (with noise detection), Hierarchical clustering with dendrogram, t-SNE 2D projections, and Apriori association rules.",
-        "pills": ["K-Means", "DBSCAN", "t-SNE", "Apriori"],
-        "accent": "#22e8a0",
-    },
+    {"icon":"📊","tag":"Module 1","title":"Data Analysis","desc":"Automatic EDA with statistical summaries, correlation matrices, outlier detection, and a data health score.","pills":["Correlations","Outliers","Health Score","Missing Values"],"accent":"#2d8fcb"},
+    {"icon":"🤖","tag":"Module 2","title":"ML Models","desc":"Auto-detects regression vs classification. Trains 9+ regression and 7+ classification models simultaneously.","pills":["Auto-detect","9 Regressors","7+ Classifiers","One Click"],"accent":"#a060c8"},
+    {"icon":"📈","tag":"Module 4","title":"Visualization","desc":"Rich diagnostic charts for every model — actual vs predicted, residual analysis, confusion matrices, feature importances.","pills":["Residuals","Confusion Matrix","Feature Importance","Charts"],"accent":"#22a878"},
+    {"icon":"🧠","tag":"Module 1–2","title":"Smart Insights","desc":"Auto-generated insights explain your data in plain English. Model grades (A–D), overfitting warnings, recommendations.","pills":["Plain English","Model Grade","Overfit Alert","Recommendations"],"accent":"#e0a844"},
+    {"icon":"⚡","tag":"Module 3","title":"Performance","desc":"Side-by-side model comparison tables with R², RMSE, F1, Accuracy, and overfitting gap.","pills":["R² & RMSE","F1 Score","Ranking Table","Best Model"],"accent":"#44c8e0"},
+    {"icon":"🔍","tag":"Module 7","title":"Clustering & Discovery","desc":"K-Means, DBSCAN, Hierarchical clustering with dendrogram, t-SNE 2D projections, and Apriori association rules.","pills":["K-Means","DBSCAN","t-SNE","Apriori"],"accent":"#22e8a0"},
 ]
 
-col_sets = [st.columns(3), st.columns(3)]
-for idx, card in enumerate(CARDS):
-    row = idx // 3
-    col = idx % 3
+col_sets=[st.columns(3),st.columns(3)]
+for idx,card in enumerate(CARDS):
+    row=idx//3;col=idx%3
     with col_sets[row][col]:
-        pills_html = "".join(f'<span class="feat-pill">{p}</span>' for p in card["pills"])
-        st.markdown(f"""
-<div class="feat-card" style="--card-accent:{card['accent']};" 
-     data-delay="{idx * 0.08}s">
-  <span class="feat-card-icon">{card['icon']}</span>
-  <div class="feat-card-tag">{card['tag']}</div>
-  <div class="feat-card-title">{card['title']}</div>
-  <div class="feat-card-desc">{card['desc']}</div>
-  <div class="feat-card-pills">{pills_html}</div>
-</div>
-""", unsafe_allow_html=True)
+        pills_html="".join(f'<span class="feat-pill">{p}</span>' for p in card["pills"])
+        st.markdown(f'<div class="feat-card" style="--card-accent:{card["accent"]};"><span class="feat-card-icon">{card["icon"]}</span><div class="feat-card-tag">{card["tag"]}</div><div class="feat-card-title">{card["title"]}</div><div class="feat-card-desc">{card["desc"]}</div><div class="feat-card-pills">{pills_html}</div></div>',unsafe_allow_html=True)
 
-# ── Upload CTA ────────────────────────────────────────────────────────
-st.markdown('<div class="upload-cta-wrapper">', unsafe_allow_html=True)
-st.markdown('<p style="font-family:JetBrains Mono,monospace;font-size:0.72rem;color:#3a6a88;letter-spacing:0.18em;text-transform:uppercase;text-align:center;margin-bottom:18px;">Ready to begin?</p>', unsafe_allow_html=True)
-
-cta_l, cta_c, cta_r = st.columns([2, 1.4, 2])
+st.markdown('<p style="font-family:JetBrains Mono,monospace;font-size:0.72rem;color:#3a6a88;letter-spacing:0.18em;text-transform:uppercase;text-align:center;margin:28px 0 18px;">Ready to begin?</p>',unsafe_allow_html=True)
+cta_l,cta_c,cta_r=st.columns([2,1.4,2])
 with cta_c:
-    st.markdown('<div class="upload-btn-container">', unsafe_allow_html=True)
-    if st.button("⬆  Upload Dataset", use_container_width=True, key="cta_upload_btn"):
-        st.session_state.show_uploader = True
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('<div class="upload-btn-container">',unsafe_allow_html=True)
+    if st.button("⬆  Upload Dataset",use_container_width=True,key="cta_upload_btn"): st.session_state.show_uploader=True
+    st.markdown('</div>',unsafe_allow_html=True)
+st.markdown('<p style="text-align:center;font-family:JetBrains Mono,monospace;font-size:0.68rem;color:#3a6a88;margin-top:10px;">Supports CSV files · All processing happens locally</p>',unsafe_allow_html=True)
+st.markdown('<div class="section-divider"></div>',unsafe_allow_html=True)
 
-st.markdown('<p class="upload-hint" style="text-align:center;">Supports CSV files · All processing happens locally</p>', unsafe_allow_html=True)
-st.markdown('</div>', unsafe_allow_html=True)
-
-st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
-
-
-# ════ GATE: stop here until user clicks "Upload Dataset" ════
 if not st.session_state.show_uploader:
     st.stop()
 
 # ════ POST-LANDING HEADER ════
-st.markdown('<div class="hero-title">Intelligent Data Analysis & ML System</div>', unsafe_allow_html=True)
-st.markdown('<div class="hero-sub">v10 · Auto-Detects Regression vs Classification · 9 Regression Models · 7+ Classification Models · DBSCAN · Hierarchical · t-SNE · Manual & Library Implementations</div>', unsafe_allow_html=True)
-st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
+st.markdown('<div class="hero-title">Intelligent Data Analysis & ML System</div>',unsafe_allow_html=True)
+st.markdown('<div class="hero-sub">v10 · Auto-Detects Regression vs Classification · 9 Regression Models · 7+ Classification Models · DBSCAN · Hierarchical · t-SNE · Manual & Library Implementations</div>',unsafe_allow_html=True)
+st.markdown('<div class="section-divider"></div>',unsafe_allow_html=True)
 
-uploaded_file = st.file_uploader("Upload dataset (CSV)", type=["csv"], label_visibility="collapsed")
+uploaded_file=st.file_uploader("Upload dataset (CSV)",type=["csv"],label_visibility="collapsed")
 if uploaded_file is None:
     st.info("Upload a CSV file above to begin.")
     st.stop()
@@ -998,8 +711,9 @@ cat_cols     = data.select_dtypes(exclude=np.number).columns.tolist()
 all_cols     = data.columns.tolist()
 total_miss   = int(data.isnull().sum().sum())
 
-
+# ════════════════════════════════════════════════════════════════════════
 # MODULE 1 — SMART EDA
+# ════════════════════════════════════════════════════════════════════════
 st.markdown(module_banner("1","Smart Exploratory Data Analysis","Auto-generated insights before model training"),unsafe_allow_html=True)
 for w in data_warnings(data,numeric_cols): st.markdown(w,unsafe_allow_html=True)
 st.markdown("## Dataset Overview")
@@ -1065,6 +779,190 @@ else:
     for i,(lbl,cnt) in enumerate(value_counts.items()):
         ax_vd.text(i,cnt+max(value_counts)*0.01,f"{cnt}\n({cnt/len(data)*100:.1f}%)",ha="center",va="bottom",fontsize=8,color=TEXT_CLR,fontfamily="monospace")
     ax_vd.set_title(f"Class Distribution — '{target_col_eda}'");ax_vd.set_ylabel("Count");apply_theme(fig_vd,ax_vd);fig_vd.tight_layout();st.pyplot(fig_vd);plt.close()
+
+# ════════════════════════════════════════════════════════════════════════
+# ★ TOP DATASET INSIGHTS — placed before Outlier Detection
+# ════════════════════════════════════════════════════════════════════════
+st.markdown('<div class="section-divider"></div>',unsafe_allow_html=True)
+st.markdown(module_banner("★","Top Dataset Insights","Numeric snapshots · Categorical distributions · Top records"),unsafe_allow_html=True)
+
+cat_cols_insight  = data.select_dtypes(exclude=np.number).columns.tolist()
+numeric_cols_insight = data.select_dtypes(include=np.number).columns.tolist()
+
+# ── Numeric Column Snapshots ─────────────────────────────────────────────
+if numeric_cols_insight:
+    st.markdown("### Numeric Column Snapshots")
+    st.markdown('<p style="font-size:0.76rem;color:#7ea8c4;margin-bottom:14px;">Stats + distribution histogram per numeric column — 3 per row</p>',unsafe_allow_html=True)
+    SNAP_COLORS = [ACCENT1, ACCENT2, ACCENT4, ACCENT5, ACCENT6, ACCENT3, ACCENT7, "#44c8e0", "#e07030"]
+    for row_i in range(int(np.ceil(len(numeric_cols_insight) / 3))):
+        snap_cols = st.columns(3)
+        for ci in range(3):
+            fi = row_i * 3 + ci
+            if fi >= len(numeric_cols_insight):
+                break
+            col_name = numeric_cols_insight[fi]
+            cd = data[col_name].dropna()
+            snap_color = SNAP_COLORS[fi % len(SNAP_COLORS)]
+            with snap_cols[ci]:
+                # Stat mini-cards
+                st.markdown(
+                    f'<div class="num-snap-card">'
+                    f'<div class="num-snap-title">⬡ {col_name}</div>'
+                    f'<div class="card-grid" style="gap:5px;margin-bottom:0;">'
+                    f'<div class="stat-card" style="padding:8px 6px;min-width:60px;"><div class="val" style="font-size:0.95rem;color:{snap_color};">{cd.mean():.2f}</div><div class="lbl">Mean</div></div>'
+                    f'<div class="stat-card" style="padding:8px 6px;min-width:60px;"><div class="val" style="font-size:0.95rem;color:{snap_color};">{cd.median():.2f}</div><div class="lbl">Median</div></div>'
+                    f'<div class="stat-card" style="padding:8px 6px;min-width:60px;"><div class="val" style="font-size:0.95rem;color:{snap_color};">{cd.std():.2f}</div><div class="lbl">Std</div></div>'
+                    f'<div class="stat-card" style="padding:8px 6px;min-width:60px;"><div class="val" style="font-size:0.95rem;color:{snap_color};">{cd.min():.2f}</div><div class="lbl">Min</div></div>'
+                    f'<div class="stat-card" style="padding:8px 6px;min-width:60px;"><div class="val" style="font-size:0.95rem;color:{snap_color};">{cd.max():.2f}</div><div class="lbl">Max</div></div>'
+                    f'<div class="stat-card" style="padding:8px 6px;min-width:60px;"><div class="val" style="font-size:0.95rem;color:{"#e07070" if abs(cd.skew())>1 else "#22e8a0"};">{cd.skew():.2f}</div><div class="lbl">Skew</div></div>'
+                    f'</div></div>',
+                    unsafe_allow_html=True,
+                )
+                # Histogram with mean + median lines
+                fig_h, ax_h = plt.subplots(figsize=(4.2, 2.4))
+                ax_h.hist(cd, bins=min(25, max(5, len(cd)//10)), color=snap_color,
+                          edgecolor=PLOT_BG, linewidth=0.4, alpha=0.88)
+                ax_h.axvline(cd.mean(),   color=ACCENT2, linewidth=1.6, linestyle="--",
+                             label=f"μ {cd.mean():.2f}")
+                ax_h.axvline(cd.median(), color=ACCENT4, linewidth=1.6, linestyle=":",
+                             label=f"m {cd.median():.2f}")
+                ax_h.set_title(f"{col_name}", fontsize=8.5, color="#7eb8d4")
+                ax_h.legend(fontsize=6.5, framealpha=0.15, labelcolor=TEXT_CLR,
+                            facecolor=AXES_BG, edgecolor=GRID_CLR)
+                apply_theme(fig_h, ax_h)
+                fig_h.tight_layout(pad=1.0)
+                st.pyplot(fig_h)
+                plt.close()
+
+# ── Categorical Donut Charts ─────────────────────────────────────────────
+if cat_cols_insight:
+    st.markdown('<div class="section-divider"></div>',unsafe_allow_html=True)
+    st.markdown("### Categorical Column Distributions")
+    st.markdown('<p style="font-size:0.76rem;color:#7ea8c4;margin-bottom:14px;">Top 5 categories per column — donut chart + count bar</p>',unsafe_allow_html=True)
+
+    DONUT_COLORS = [ACCENT1, ACCENT2, ACCENT4, ACCENT5, ACCENT6, ACCENT3]
+
+    for row_i in range(int(np.ceil(len(cat_cols_insight) / 2))):
+        cols_pair = st.columns(2)
+        for ci in range(2):
+            fi = row_i * 2 + ci
+            if fi >= len(cat_cols_insight):
+                break
+            col_name = cat_cols_insight[fi]
+            vc = data[col_name].value_counts().head(5)
+            labels = [str(l) for l in vc.index]
+            counts = vc.values
+            colors = DONUT_COLORS[:len(labels)]
+            other_count = data[col_name].value_counts().iloc[5:].sum() if len(data[col_name].value_counts()) > 5 else 0
+
+            with cols_pair[ci]:
+                st.markdown(f'<div style="font-family:JetBrains Mono,monospace;font-size:0.8rem;color:#a8ccde;margin-bottom:6px;">⬡ {col_name}</div>',unsafe_allow_html=True)
+                fig_d, axes_d = plt.subplots(1, 2, figsize=(8, 3.4))
+                fig_d.patch.set_facecolor(PLOT_BG)
+
+                # Donut
+                ax_donut = axes_d[0]
+                ax_donut.set_facecolor(PLOT_BG)
+                wedge_vals = list(counts) + ([other_count] if other_count > 0 else [])
+                wedge_lbls = labels + (["Other"] if other_count > 0 else [])
+                wedge_clrs = colors + (["#1d3a54"] if other_count > 0 else [])
+                wedges, texts, autotexts = ax_donut.pie(
+                    wedge_vals, labels=None, colors=wedge_clrs,
+                    autopct=lambda pct: f"{pct:.1f}%" if pct > 5 else "",
+                    startangle=140,
+                    wedgeprops=dict(width=0.52, edgecolor=PLOT_BG, linewidth=1.6),
+                    pctdistance=0.78,
+                )
+                for at in autotexts:
+                    at.set_color("#c9d8e8"); at.set_fontsize(7); at.set_fontfamily("monospace")
+                centre_circle = plt.Circle((0, 0), 0.48, fc=AXES_BG)
+                ax_donut.add_patch(centre_circle)
+                ax_donut.text(0, 0, f"{data[col_name].nunique()}\nunique", ha="center", va="center",
+                              fontsize=8, color="#7ea8c4", fontfamily="monospace")
+                ax_donut.set_title(f"Top {len(labels)}", fontsize=9, color="#7eb8d4", pad=6)
+                legend_patches = [mpatches.Patch(color=c, label=f"{l} ({v:,})") for c, l, v in zip(wedge_clrs, wedge_lbls, wedge_vals)]
+                ax_donut.legend(handles=legend_patches, loc="lower center", bbox_to_anchor=(0.5, -0.22),
+                                ncol=2, fontsize=6.5, framealpha=0.0, labelcolor="#7ea8c4")
+
+                # Bar chart
+                ax_bar = axes_d[1]
+                ax_bar.set_facecolor(AXES_BG)
+                bar_h = ax_bar.barh(
+                    [l[:18] + "…" if len(l) > 18 else l for l in labels[::-1]],
+                    counts[::-1], color=colors[::-1], edgecolor=PLOT_BG, linewidth=0.8, height=0.62,
+                )
+                for rect, val in zip(bar_h, counts[::-1]):
+                    ax_bar.text(rect.get_width() + max(counts) * 0.02,
+                                rect.get_y() + rect.get_height() / 2,
+                                f"{val:,}", va="center", ha="left", fontsize=7,
+                                color="#7ea8c4", fontfamily="monospace")
+                ax_bar.set_xlabel("Count", fontsize=8)
+                ax_bar.set_title("Count by Category", fontsize=9, color="#7eb8d4")
+                ax_bar.tick_params(colors="#7ea8c4", labelsize=7.5)
+                ax_bar.xaxis.label.set_color("#7ea8c4")
+                ax_bar.grid(True, color=GRID_CLR, linewidth=0.4, linestyle="--", alpha=0.6, axis="x")
+                for spine in ax_bar.spines.values(): spine.set_edgecolor(GRID_CLR)
+                ax_bar.set_xlim(0, max(counts) * 1.22)
+
+                fig_d.tight_layout(pad=1.4)
+                st.pyplot(fig_d)
+                plt.close()
+
+                total_shown = sum(wedge_vals)
+                coverage = total_shown / len(data) * 100
+                st.markdown(
+                    f'<div style="font-size:0.71rem;color:#7ea8c4;font-family:JetBrains Mono,monospace;margin-bottom:14px;">'
+                    f'Top 5 cover {coverage:.1f}% of {len(data):,} rows'
+                    f'{"&nbsp;·&nbsp;+" + str(other_count) + " in Other" if other_count > 0 else ""}</div>',
+                    unsafe_allow_html=True,
+                )
+else:
+    st.markdown('<div class="insight-neu">ℹ No categorical columns detected in this dataset.</div>',unsafe_allow_html=True)
+
+# ── Top Records ──────────────────────────────────────────────────────────
+st.markdown('<div class="section-divider"></div>',unsafe_allow_html=True)
+st.markdown("### Top Records")
+if numeric_cols_insight:
+    tr_c1, tr_c2 = st.columns([2, 1])
+    with tr_c1:
+        top_col = st.selectbox("Sort by numeric column", numeric_cols_insight, key="top_records_col")
+    with tr_c2:
+        sort_order = st.radio("Order", ["Descending ↓", "Ascending ↑"], horizontal=True, key="top_records_order")
+
+    ascending = sort_order.startswith("Ascending")
+    top_df = data.sort_values(by=top_col, ascending=ascending).head(10).reset_index(drop=True)
+    top_df.insert(0, "Rank", range(1, len(top_df) + 1))
+
+    st.markdown(
+        f'<div style="font-size:0.74rem;font-family:JetBrains Mono,monospace;color:#2d8fcb;margin-bottom:8px;">'
+        f'Top 10 rows sorted by <span style="color:#e0a844;">{top_col}</span> '
+        f'({"highest → lowest" if not ascending else "lowest → highest"})</div>',
+        unsafe_allow_html=True,
+    )
+    st.dataframe(top_df, use_container_width=True, hide_index=True)
+
+    fig_top, ax_top = plt.subplots(figsize=(10, 3.2))
+    bar_vals = top_df[top_col].values
+    bar_lbls = [f"#{i+1}" for i in range(len(bar_vals))]
+    norm = plt.Normalize(bar_vals.min(), bar_vals.max())
+    bar_clrs = plt.cm.Blues(norm(bar_vals)) if not ascending else plt.cm.Oranges(1 - norm(bar_vals))
+    ax_top.bar(bar_lbls, bar_vals, color=bar_clrs, edgecolor=AXES_BG, linewidth=0.6)
+    for i, val in enumerate(bar_vals):
+        ax_top.text(i, val + (bar_vals.max() - bar_vals.min()) * 0.02,
+                    f"{val:.2f}", ha="center", va="bottom",
+                    fontsize=7.5, color="#a8ccde", fontfamily="monospace")
+    ax_top.set_ylabel(top_col, fontsize=9)
+    ax_top.set_title(f"Top 10 Records — {top_col}", fontsize=10)
+    apply_theme(fig_top, ax_top)
+    fig_top.tight_layout()
+    st.pyplot(fig_top)
+    plt.close()
+else:
+    st.markdown('<div class="insight-neu">ℹ No numeric columns found for Top Records.</div>',unsafe_allow_html=True)
+
+# ════════════════════════════════════════════════════════════════════════
+# OUTLIER DETECTION (Module 1 continued)
+# ════════════════════════════════════════════════════════════════════════
 st.markdown('<div class="section-divider"></div>',unsafe_allow_html=True);st.markdown("## Outlier Detection (IQR Method)")
 outlier_counts={}
 if numeric_cols:
@@ -1080,6 +978,7 @@ if numeric_cols:
                 ax_bp3.set_title(cn_name,fontsize=10);ax_bp3.set_xlabel("Value",fontsize=8);ax_bp3.set_yticks([]);apply_theme(fig_bp3,ax_bp3);fig_bp3.tight_layout(pad=1.2);st.pyplot(fig_bp3);plt.close()
                 is_bad=n_out>0;badge_cls="outlier-found" if is_bad else "outlier-clean";badge_txt=f"{n_out} outlier{'s' if n_out!=1 else ''} detected" if is_bad else "No outliers"
                 st.markdown(f'<div class="outlier-badge {badge_cls}">{"⚠" if is_bad else "✓"} {badge_txt}&nbsp;&nbsp;|&nbsp;&nbsp;IQR={iqr:.3f} [{lo_b:.3f},{hi_b:.3f}]</div>',unsafe_allow_html=True)
+
 st.markdown('<div class="section-divider"></div>',unsafe_allow_html=True);st.markdown("## Automated Data Insights Summary")
 def build_summary(data,numeric_cols,cat_cols,total_miss,corr_with_target,outlier_counts,stats_rows):
     items=[]
@@ -1109,7 +1008,9 @@ hs,hbd,hlabel,hcss=compute_health_score(data,numeric_cols,outlier_counts);st.mar
 st.session_state["_health_score"]=hs;st.session_state["_health_label"]=hlabel
 bullets=build_english_summary(data,numeric_cols,cat_cols,total_miss,outlier_counts,corr_with_target,target_col_eda);st.markdown(render_english_summary(bullets),unsafe_allow_html=True)
 
+# ════════════════════════════════════════════════════════════════════════
 # MODULE 2 — ML DASHBOARD
+# ════════════════════════════════════════════════════════════════════════
 st.markdown(module_banner("2","Machine Learning Dashboard","Auto-detects Regression or Classification · 9 Regression + 7 Classification Models"),unsafe_allow_html=True)
 st.markdown("## Data Configuration")
 if cat_cols: st.info(f"🏷️ Categorical columns: {', '.join(cat_cols)}. Auto label-encoded.")
@@ -1184,8 +1085,9 @@ if train_btn:
     best_metric=f"R² = {results[best_name]['R²']:.4f}" if ml_mode=="regression" else f"F1 = {results[best_name]['F1']:.4f}"
     st.success(f"✓ All models trained [{mode_label}]. Best: **{best_name}** ({best_metric})")
 
-
+# ════════════════════════════════════════════════════════════════════════
 # POST-TRAINING DASHBOARD
+# ════════════════════════════════════════════════════════════════════════
 if st.session_state.get("_trained"):
     results=st.session_state["_results"];fitted=st.session_state["_fitted"];best_name=st.session_state["_best"]
     t_feat=st.session_state["_feat"];t_tgt=st.session_state["_target"];X_te=st.session_state["_X_te"]
@@ -1419,8 +1321,9 @@ if st.session_state.get("_trained"):
     with col_dl2:
         csv_buffer=io.StringIO();metrics_df.to_csv(csv_buffer,index=False);st.download_button("📊  Download Metrics CSV (.csv)",csv_buffer.getvalue().encode("utf-8"),"ml_metrics.csv","text/csv",use_container_width=True)
 
-
+# ════════════════════════════════════════════════════════════════════════
 # MODULE 7 — UNSUPERVISED LEARNING
+# ════════════════════════════════════════════════════════════════════════
 st.markdown(module_banner("7","Unsupervised Learning & Pattern Discovery","K-Means · DBSCAN · Hierarchical Clustering · t-SNE Visualization · Apriori Rules"),unsafe_allow_html=True)
 if len(numeric_cols)<2:
     st.warning("⚠ Module 7 requires at least 2 numeric columns.")
@@ -1481,7 +1384,7 @@ else:
 
         elif unsup_algo=="DBSCAN — Density-Based Clustering":
             st.markdown('<div class="module-banner" style="border-left-color:#d05090;"><div class="mod-label" style="color:#d05090;">⬡ Algorithm · DBSCAN · sklearn</div><div class="mod-title">DBSCAN — Density-Based Spatial Clustering</div><div class="mod-sub">Finds clusters of arbitrary shape · Automatically labels noise points as outliers</div></div>',unsafe_allow_html=True)
-            st.markdown('<div class="problem-explain-box" style="border-left-color:#d05090;"><strong>How DBSCAN works:</strong><br>DBSCAN groups points that are <em>close together</em> (within distance <code>eps</code>) and have enough neighbours (<code>min_samples</code>). Unlike K-Means, you don\'t need to specify the number of clusters — DBSCAN discovers it automatically. Points that don\'t belong to any dense region are labelled as <em>noise</em> (shown in grey). Great for detecting outliers!</div>',unsafe_allow_html=True)
+            st.markdown('<div class="problem-explain-box" style="border-left-color:#d05090;"><strong>How DBSCAN works:</strong><br>DBSCAN groups points that are <em>close together</em> (within distance <code>eps</code>) and have enough neighbours (<code>min_samples</code>). Unlike K-Means, you don\'t need to specify the number of clusters — DBSCAN discovers it automatically. Points that don\'t belong to any dense region are labelled as <em>noise</em>.</div>',unsafe_allow_html=True)
             db1,db2,db3=st.columns(3)
             with db1: db_eps=st.slider("ε (eps) — neighbourhood radius",0.1,5.0,0.5,0.05,key="db_eps")
             with db2: db_min=st.slider("min_samples — core point threshold",2,30,5,1,key="db_min")
@@ -1518,7 +1421,7 @@ else:
 
         elif unsup_algo=="Hierarchical Clustering (Manual)":
             st.markdown('<div class="module-banner" style="border-left-color:#44c8e0;"><div class="mod-label" style="color:#44c8e0;">⬡ Algorithm · Hierarchical · Manual + sklearn</div><div class="mod-title">Hierarchical (Agglomerative) Clustering</div><div class="mod-sub">Manual implementation for small datasets · sklearn dendrogram for visualisation</div></div>',unsafe_allow_html=True)
-            st.markdown('<div class="problem-explain-box" style="border-left-color:#44c8e0;"><strong>How Hierarchical Clustering works:</strong><br>Start with every point as its own group. Then repeatedly <em>merge</em> the two closest groups until only the desired number remain. The result is a tree (dendrogram) showing how groups split apart.</div>',unsafe_allow_html=True)
+            st.markdown('<div class="problem-explain-box" style="border-left-color:#44c8e0;"><strong>How Hierarchical Clustering works:</strong><br>Start with every point as its own group. Then repeatedly <em>merge</em> the two closest groups until only the desired number remain.</div>',unsafe_allow_html=True)
             hc1,hc2,hc3=st.columns(3)
             with hc1: hc_n_clusters=st.slider("Number of Clusters",2,10,3,1,key="hc_n")
             with hc2: hc_linkage=st.selectbox("Linkage type",["complete","single","average"],key="hc_link")
@@ -1551,11 +1454,9 @@ else:
                     apply_theme(fig_dnd,ax_dnd);fig_dnd.tight_layout();st.pyplot(fig_dnd);plt.close()
                 st.markdown("#### Cluster Profiles (Feature Means)")
                 prof_df=pd.DataFrame(X_hc_plot,columns=unsup_feats);prof_df["__cluster__"]=hc_labels;prof_means=prof_df.groupby("__cluster__")[unsup_feats].mean().round(3);prof_means.index=[f"Cluster {i+1}" for i in prof_means.index];st.dataframe(prof_means.T,use_container_width=True)
-                st.markdown(f'<div class="cluster-info-card"><div class="ci-header">📊 What the results mean</div><div class="ci-body">Hierarchical clustering merged your data bottom-up into <strong>{hc_k_used} clusters</strong> using <strong>{hc_linkage} linkage</strong>. The dendrogram shows how clusters were formed — taller bars = bigger merge jumps (natural boundaries). {"Silhouette " + f"{hc_sil:.2f}" + " → " + ("strong" if hc_sil>0.5 else "moderate" if hc_sil>0.25 else "weak") + " separation." if not np.isnan(hc_sil) else ""}</div></div>',unsafe_allow_html=True)
 
         elif unsup_algo=="t-SNE 2D Visualization":
             st.markdown('<div class="module-banner" style="border-left-color:#e0a844;"><div class="mod-label" style="color:#e0a844;">⬡ Algorithm · t-SNE · sklearn</div><div class="mod-title">t-SNE — 2D Dimensionality Reduction</div><div class="mod-sub">Reveals hidden clusters and structure by projecting high-dimensional data into 2D</div></div>',unsafe_allow_html=True)
-            st.markdown('<div class="problem-explain-box" style="border-left-color:#e0a844;"><strong>How t-SNE works:</strong><br>t-SNE compresses your data from many dimensions down to just 2, preserving <em>neighbourhoods</em> — points similar in the original space appear close together in the 2D plot. ⚠ t-SNE is for <em>visualisation only</em> — distances in the 2D plot are not directly interpretable as real distances.</div>',unsafe_allow_html=True)
             ts1,ts2,ts3,ts4=st.columns(4)
             with ts1: ts_perp=st.slider("Perplexity",5,80,30,5,key="ts_perp")
             with ts2: ts_iter=st.slider("Iterations",250,1000,500,250,key="ts_iter")
@@ -1585,14 +1486,7 @@ else:
                 else: ax_ts.scatter(X_ts_2d[:,0],X_ts_2d[:,1],s=40,color=ACCENT1,alpha=0.65,edgecolors="none")
                 ax_ts.set_xlabel("t-SNE Dimension 1");ax_ts.set_ylabel("t-SNE Dimension 2");ax_ts.set_title(f"t-SNE 2D Projection — {n_ts} points  (perplexity={ts_perp_val})",fontsize=12)
                 apply_theme(fig_ts,ax_ts);fig_ts.tight_layout();st.pyplot(fig_ts);plt.close()
-                st.markdown('<div class="cluster-info-card"><div class="ci-header">💡 How to read this chart</div><div class="ci-body">Each dot represents one row in your dataset. <strong>Dots close together have similar features</strong>. Visible clusters (blobs) suggest natural groupings. Try running <strong>K-Means or DBSCAN</strong> on the same features to formally label these groups.</div></div>',unsafe_allow_html=True)
-                if st.session_state.get("_km_labels") is not None and len(st.session_state["_km_labels"])==n_ts:
-                    st.markdown("#### t-SNE coloured by K-Means cluster labels");km_lbl_ts=st.session_state["_km_labels"]
-                    fig_ts2,ax_ts2=plt.subplots(figsize=(9,6))
-                    for cid in np.unique(km_lbl_ts):
-                        mask=km_lbl_ts==cid;clr=CLUSTER_PALETTE[cid%len(CLUSTER_PALETTE)];ax_ts2.scatter(X_ts_2d[mask,0],X_ts_2d[mask,1],s=40,color=clr,alpha=0.8,edgecolors="none",label=f"K-Means G{cid+1}")
-                    ax_ts2.set_xlabel("t-SNE 1");ax_ts2.set_ylabel("t-SNE 2");ax_ts2.set_title("t-SNE + K-Means Labels Overlay",fontsize=11)
-                    ax_ts2.legend(fontsize=8,framealpha=0.2,labelcolor=TEXT_CLR,facecolor=AXES_BG,edgecolor=GRID_CLR);apply_theme(fig_ts2,ax_ts2);fig_ts2.tight_layout();st.pyplot(fig_ts2);plt.close()
+                st.markdown('<div class="cluster-info-card"><div class="ci-header">💡 How to read this chart</div><div class="ci-body">Each dot represents one row. <strong>Dots close together have similar features</strong>. Visible clusters suggest natural groupings.</div></div>',unsafe_allow_html=True)
 
         elif unsup_algo=="Apriori — Association Rules":
             st.markdown('<div class="module-banner" style="border-left-color:#d05090;"><div class="mod-label" style="color:#d05090;">⬡ Algorithm · Apriori · Manual</div><div class="mod-title">Manual Apriori — Association Rule Mining</div></div>',unsafe_allow_html=True)
