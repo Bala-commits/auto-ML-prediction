@@ -1461,7 +1461,15 @@ else:
             with ts1: ts_perp=st.slider("Perplexity",5,80,30,5,key="ts_perp")
             with ts2: ts_iter=st.slider("Iterations",250,1000,500,250,key="ts_iter")
             with ts3: ts_lr=st.slider("Learning rate",10,1000,200,10,key="ts_lr")
-            with ts4: ts_max_rows=st.slider("Max rows",100,min(2000,len(data)),min(500,len(data)),100,key="ts_rows")
+            with ts4:
+              ts_slider_max = max(101, min(2000, len(data)))
+              ts_slider_default = max(100, min(500, len(data)))
+              ts_slider_default = min(ts_slider_default, ts_slider_max)
+              if ts_slider_max <= 100:
+                 st.info(f"Dataset has only {len(data)} rows — using all for t-SNE.")
+                 ts_max_rows = len(data)
+              else:
+                 ts_max_rows = st.slider("Max rows", 100, ts_slider_max, ts_slider_default, 100, key="ts_rows")
             colour_by_opts=["None (single colour)"]+all_cols;ts_colour=st.selectbox("Colour points by column (optional)",colour_by_opts,key="ts_colour")
             run_tsne=st.button("▶  Run t-SNE",use_container_width=True,key="run_tsne")
             if run_tsne:
