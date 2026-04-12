@@ -1,7 +1,10 @@
+
 # ════════════════════════════════════════════════════════════════════════
 #  Intelligent Data Analysis & ML System  —  v10 + Landing UI
 #  All original functionality preserved.
 #  FIXED: Top Dataset Insights — numeric column snapshots + histograms
+#  FIXED: pandas string dtype median error (Cloud compatibility)
+#  FIXED: is_numeric_dtype used throughout for safe fillna
 # ════════════════════════════════════════════════════════════════════════
 import streamlit as st
 import pandas as pd
@@ -20,6 +23,7 @@ from sklearn.manifold import TSNE
 from sklearn.metrics import (accuracy_score, precision_score, recall_score,
                               f1_score, confusion_matrix, classification_report)
 from sklearn.preprocessing import LabelEncoder
+from pandas.api.types import is_numeric_dtype   # ← FIXED: robust dtype check
 import warnings
 import io
 warnings.filterwarnings("ignore")
@@ -258,6 +262,16 @@ def detect_mode(series):
     if pd.api.types.is_integer_dtype(series) and n_unique<=CLASSIFICATION_THRESHOLD: return "classification"
     if n_unique<=5 and n_unique/max(n_total,1)<0.05: return "classification"
     return "regression"
+
+# ── FIXED: safe fillna helper ─────────────────────────────────────────
+def safe_fillna(col):
+    """Fill NA values safely regardless of pandas dtype (numeric vs string)."""
+    if is_numeric_dtype(col):
+        return col.fillna(col.median())
+    else:
+        mode_val = col.mode()
+        fill_val = mode_val[0] if not mode_val.empty else "missing"
+        return col.fillna(fill_val)
 
 class ManualLinearRegression:
     name="Linear"
@@ -781,7 +795,7 @@ else:
     ax_vd.set_title(f"Class Distribution — '{target_col_eda}'");ax_vd.set_ylabel("Count");apply_theme(fig_vd,ax_vd);fig_vd.tight_layout();st.pyplot(fig_vd);plt.close()
 
 # ════════════════════════════════════════════════════════════════════════
-# ★ TOP DATASET INSIGHTS — placed before Outlier Detection
+# ★ TOP DATASET INSIGHTS
 # ════════════════════════════════════════════════════════════════════════
 st.markdown('<div class="section-divider"></div>',unsafe_allow_html=True)
 st.markdown(module_banner("★","Top Dataset Insights","Numeric snapshots · Categorical distributions · Top records"),unsafe_allow_html=True)
@@ -789,7 +803,6 @@ st.markdown(module_banner("★","Top Dataset Insights","Numeric snapshots · Cat
 cat_cols_insight  = data.select_dtypes(exclude=np.number).columns.tolist()
 numeric_cols_insight = data.select_dtypes(include=np.number).columns.tolist()
 
-# ── Numeric Column Snapshots ─────────────────────────────────────────────
 if numeric_cols_insight:
     st.markdown("### Numeric Column Snapshots")
     st.markdown('<p style="font-size:0.76rem;color:#7ea8c4;margin-bottom:14px;">Stats + distribution histogram per numeric column — 3 per row</p>',unsafe_allow_html=True)
@@ -804,7 +817,6 @@ if numeric_cols_insight:
             cd = data[col_name].dropna()
             snap_color = SNAP_COLORS[fi % len(SNAP_COLORS)]
             with snap_cols[ci]:
-                # Stat mini-cards
                 st.markdown(
                     f'<div class="num-snap-card">'
                     f'<div class="num-snap-title">⬡ {col_name}</div>'
@@ -818,7 +830,6 @@ if numeric_cols_insight:
                     f'</div></div>',
                     unsafe_allow_html=True,
                 )
-                # Histogram with mean + median lines
                 fig_h, ax_h = plt.subplots(figsize=(4.2, 2.4))
                 ax_h.hist(cd, bins=min(25, max(5, len(cd)//10)), color=snap_color,
                           edgecolor=PLOT_BG, linewidth=0.4, alpha=0.88)
@@ -834,14 +845,11 @@ if numeric_cols_insight:
                 st.pyplot(fig_h)
                 plt.close()
 
-# ── Categorical Donut Charts ─────────────────────────────────────────────
 if cat_cols_insight:
     st.markdown('<div class="section-divider"></div>',unsafe_allow_html=True)
     st.markdown("### Categorical Column Distributions")
     st.markdown('<p style="font-size:0.76rem;color:#7ea8c4;margin-bottom:14px;">Top 5 categories per column — donut chart + count bar</p>',unsafe_allow_html=True)
-
     DONUT_COLORS = [ACCENT1, ACCENT2, ACCENT4, ACCENT5, ACCENT6, ACCENT3]
-
     for row_i in range(int(np.ceil(len(cat_cols_insight) / 2))):
         cols_pair = st.columns(2)
         for ci in range(2):
@@ -854,13 +862,10 @@ if cat_cols_insight:
             counts = vc.values
             colors = DONUT_COLORS[:len(labels)]
             other_count = data[col_name].value_counts().iloc[5:].sum() if len(data[col_name].value_counts()) > 5 else 0
-
             with cols_pair[ci]:
                 st.markdown(f'<div style="font-family:JetBrains Mono,monospace;font-size:0.8rem;color:#a8ccde;margin-bottom:6px;">⬡ {col_name}</div>',unsafe_allow_html=True)
                 fig_d, axes_d = plt.subplots(1, 2, figsize=(8, 3.4))
                 fig_d.patch.set_facecolor(PLOT_BG)
-
-                # Donut
                 ax_donut = axes_d[0]
                 ax_donut.set_facecolor(PLOT_BG)
                 wedge_vals = list(counts) + ([other_count] if other_count > 0 else [])
@@ -883,8 +888,6 @@ if cat_cols_insight:
                 legend_patches = [mpatches.Patch(color=c, label=f"{l} ({v:,})") for c, l, v in zip(wedge_clrs, wedge_lbls, wedge_vals)]
                 ax_donut.legend(handles=legend_patches, loc="lower center", bbox_to_anchor=(0.5, -0.22),
                                 ncol=2, fontsize=6.5, framealpha=0.0, labelcolor="#7ea8c4")
-
-                # Bar chart
                 ax_bar = axes_d[1]
                 ax_bar.set_facecolor(AXES_BG)
                 bar_h = ax_bar.barh(
@@ -903,11 +906,9 @@ if cat_cols_insight:
                 ax_bar.grid(True, color=GRID_CLR, linewidth=0.4, linestyle="--", alpha=0.6, axis="x")
                 for spine in ax_bar.spines.values(): spine.set_edgecolor(GRID_CLR)
                 ax_bar.set_xlim(0, max(counts) * 1.22)
-
                 fig_d.tight_layout(pad=1.4)
                 st.pyplot(fig_d)
                 plt.close()
-
                 total_shown = sum(wedge_vals)
                 coverage = total_shown / len(data) * 100
                 st.markdown(
@@ -919,7 +920,6 @@ if cat_cols_insight:
 else:
     st.markdown('<div class="insight-neu">ℹ No categorical columns detected in this dataset.</div>',unsafe_allow_html=True)
 
-# ── Top Records ──────────────────────────────────────────────────────────
 st.markdown('<div class="section-divider"></div>',unsafe_allow_html=True)
 st.markdown("### Top Records")
 if numeric_cols_insight:
@@ -928,11 +928,9 @@ if numeric_cols_insight:
         top_col = st.selectbox("Sort by numeric column", numeric_cols_insight, key="top_records_col")
     with tr_c2:
         sort_order = st.radio("Order", ["Descending ↓", "Ascending ↑"], horizontal=True, key="top_records_order")
-
     ascending = sort_order.startswith("Ascending")
     top_df = data.sort_values(by=top_col, ascending=ascending).head(10).reset_index(drop=True)
     top_df.insert(0, "Rank", range(1, len(top_df) + 1))
-
     st.markdown(
         f'<div style="font-size:0.74rem;font-family:JetBrains Mono,monospace;color:#2d8fcb;margin-bottom:8px;">'
         f'Top 10 rows sorted by <span style="color:#e0a844;">{top_col}</span> '
@@ -940,7 +938,6 @@ if numeric_cols_insight:
         unsafe_allow_html=True,
     )
     st.dataframe(top_df, use_container_width=True, hide_index=True)
-
     fig_top, ax_top = plt.subplots(figsize=(10, 3.2))
     bar_vals = top_df[top_col].values
     bar_lbls = [f"#{i+1}" for i in range(len(bar_vals))]
@@ -961,7 +958,7 @@ else:
     st.markdown('<div class="insight-neu">ℹ No numeric columns found for Top Records.</div>',unsafe_allow_html=True)
 
 # ════════════════════════════════════════════════════════════════════════
-# OUTLIER DETECTION (Module 1 continued)
+# OUTLIER DETECTION
 # ════════════════════════════════════════════════════════════════════════
 st.markdown('<div class="section-divider"></div>',unsafe_allow_html=True);st.markdown("## Outlier Detection (IQR Method)")
 outlier_counts={}
@@ -1049,16 +1046,26 @@ if train_btn:
         np.random.seed(42);feature_encoders={};X_parts=[]
         for feat in ml_features:
             col=data[feat]
-            if col.dtype==object or str(col.dtype) in ("string","category"):
-                fe=LabelEncoder();mode_val=col.mode()[0] if not col.mode().empty else "missing";filled=col.fillna(mode_val).astype(str);encoded=fe.fit_transform(filled).astype(float);feature_encoders[feat]=fe;X_parts.append(encoded.reshape(-1,1))
-            else: X_parts.append(col.fillna(col.median()).values.astype(float).reshape(-1,1))
+            # FIXED: robust dtype check instead of col.dtype==object
+            if not is_numeric_dtype(col):
+                fe=LabelEncoder()
+                mode_val=col.mode()[0] if not col.mode().empty else "missing"
+                filled=col.fillna(mode_val).astype(str)
+                encoded=fe.fit_transform(filled).astype(float)
+                feature_encoders[feat]=fe
+                X_parts.append(encoded.reshape(-1,1))
+            else:
+                X_parts.append(safe_fillna(col).values.astype(float).reshape(-1,1))
         X_raw=np.hstack(X_parts);xmu=xsg=None
         if apply_std: xmu=X_raw.mean(axis=0);xsg=X_raw.std(axis=0);xsg[xsg==0]=1.0;X=(X_raw-xmu)/xsg
         else: X=X_raw.copy()
         le=None
-        if ml_mode=="regression": y=data[ml_target].fillna(data[ml_target].median()).values.astype(float);classes=None
+        if ml_mode=="regression":
+            y=safe_fillna(data[ml_target]).values.astype(float);classes=None
         else:
-            le=LabelEncoder();raw_y=data[ml_target].fillna(data[ml_target].mode()[0]).astype(str);y=le.fit_transform(raw_y);classes=le.classes_
+            le=LabelEncoder()
+            raw_y=data[ml_target].fillna(data[ml_target].mode()[0] if not data[ml_target].mode().empty else "missing").astype(str)
+            y=le.fit_transform(raw_y);classes=le.classes_
         n=len(X);split_n=int(n*split_pct/100);idx=np.random.permutation(n)
         X_tr,X_te=X[idx[:split_n]],X[idx[split_n:]];y_tr,y_te=y[idx[:split_n]],y[idx[split_n:]]
         results={};fitted={}
@@ -1220,7 +1227,7 @@ if st.session_state.get("_trained"):
             if feat in feat_enc:
                 fe=feat_enc[feat];cat_opts=list(fe.classes_);sel=st.selectbox(f"{feat} 🏷️",options=cat_opts,key=f"pred_{feat}");user_vals.append(float(fe.transform([sel])[0]));user_vals_raw.append(sel)
             else:
-                lo_v=float(dsnap[feat].min());hi_v=float(dsnap[feat].max());mean_v=float(dsnap[feat].mean())
+                lo_v=float(dsnap[feat].min());hi_v=float(dsnap[feat].max());mean_v=float(safe_fillna(dsnap[feat]).mean())
                 v=st.number_input(feat,min_value=lo_v,max_value=hi_v,value=mean_v,step=max((hi_v-lo_v)/200,1e-6),format="%.4f",key=f"pred_{feat}");user_vals.append(v);user_vals_raw.append(v)
     pc,_=st.columns([1,3])
     with pc: do_pred=st.button("Predict",use_container_width=True)
@@ -1334,7 +1341,11 @@ else:
     default_unsup_feats=numeric_cols[:min(5,len(numeric_cols))];unsup_feats=st.multiselect("Select numeric features (min 2)",numeric_cols,default=default_unsup_feats,key="unsup_feats")
     if len(unsup_feats)<2: st.warning("Please select at least 2 numeric features.")
     else:
-        X_unsup_raw=np.hstack([data[f].fillna(data[f].median()).values.astype(float).reshape(-1,1) for f in unsup_feats])
+        # FIXED: use safe_fillna for all unsupervised feature columns
+        X_unsup_raw = np.hstack([
+            safe_fillna(data[f]).values.astype(float).reshape(-1, 1)
+            for f in unsup_feats
+        ])
         unsup_mu=X_unsup_raw.mean(axis=0);unsup_sg=X_unsup_raw.std(axis=0);unsup_sg[unsup_sg==0]=1.0;X_unsup=(X_unsup_raw-unsup_mu)/unsup_sg
         st.markdown('<div class="section-divider"></div>',unsafe_allow_html=True)
 
@@ -1490,7 +1501,7 @@ else:
                             mask=colour_col==val;clr=CLUSTER_PALETTE[i%len(CLUSTER_PALETTE)];ax_ts.scatter(X_ts_2d[mask,0],X_ts_2d[mask,1],s=40,color=clr,alpha=0.75,edgecolors="none",label=str(val))
                         ax_ts.legend(title=ts_colour,fontsize=8,framealpha=0.2,labelcolor=TEXT_CLR,facecolor=AXES_BG,edgecolor=GRID_CLR)
                     else:
-                        norm_vals=colour_col.fillna(colour_col.median()).values;sc=ax_ts.scatter(X_ts_2d[:,0],X_ts_2d[:,1],s=40,c=norm_vals,cmap="plasma",alpha=0.75,edgecolors="none");plt.colorbar(sc,ax=ax_ts,shrink=0.8,label=ts_colour)
+                        norm_vals=safe_fillna(colour_col).values;sc=ax_ts.scatter(X_ts_2d[:,0],X_ts_2d[:,1],s=40,c=norm_vals,cmap="plasma",alpha=0.75,edgecolors="none");plt.colorbar(sc,ax=ax_ts,shrink=0.8,label=ts_colour)
                 else: ax_ts.scatter(X_ts_2d[:,0],X_ts_2d[:,1],s=40,color=ACCENT1,alpha=0.65,edgecolors="none")
                 ax_ts.set_xlabel("t-SNE Dimension 1");ax_ts.set_ylabel("t-SNE Dimension 2");ax_ts.set_title(f"t-SNE 2D Projection — {n_ts} points  (perplexity={ts_perp_val})",fontsize=12)
                 apply_theme(fig_ts,ax_ts);fig_ts.tight_layout();st.pyplot(fig_ts);plt.close()
@@ -1513,9 +1524,13 @@ else:
                     with st.spinner("Running Apriori…"):
                         sub_data=data[ap_feats_sel].head(ap_max_rows).copy();disc_data=pd.DataFrame()
                         for feat in ap_feats_sel:
-                            col=sub_data[feat].fillna(sub_data[feat].median())
-                            try: disc_data[feat]=pd.cut(col,bins=ap_bins,labels=blabels,duplicates="drop")
-                            except: disc_data[feat]=col.astype(str)
+                            # FIXED: safe_fillna used here — resolves the original crash
+                            col = sub_data[feat]
+                            col = safe_fillna(col)
+                            try:
+                                disc_data[feat]=pd.cut(col,bins=ap_bins,labels=blabels,duplicates="drop")
+                            except Exception:
+                                disc_data[feat]=col.astype(str)
                         transactions=[frozenset(f"{feat}={val}" for feat,val in row.items() if pd.notna(val)) for _,row in disc_data.iterrows()]
                         if not transactions: st.error("No valid transactions.")
                         else:
