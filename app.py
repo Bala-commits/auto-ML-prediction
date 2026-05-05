@@ -1,7 +1,9 @@
 
+
 # ════════════════════════════════════════════════════════════════════════
 #  Intelligent Data Analysis & ML System  —  v10 + Landing UI
 #  All original functionality preserved.
+#  FIXED: ManualPCA duplicate transform method + missing fit_transform
 #  FIXED: Top Dataset Insights — numeric column snapshots + histograms
 #  FIXED: pandas string dtype median error (Cloud compatibility)
 #  FIXED: is_numeric_dtype used throughout for safe fillna
@@ -23,7 +25,7 @@ from sklearn.manifold import TSNE
 from sklearn.metrics import (accuracy_score, precision_score, recall_score,
                               f1_score, confusion_matrix, classification_report)
 from sklearn.preprocessing import LabelEncoder
-from pandas.api.types import is_numeric_dtype   # ← FIXED: robust dtype check
+from pandas.api.types import is_numeric_dtype
 import warnings
 import io
 warnings.filterwarnings("ignore")
@@ -205,10 +207,8 @@ h1,h2,h3{font-family:'JetBrains Mono',monospace;color:var(--bright);letter-spaci
 .cluster-info-card{background:linear-gradient(135deg,#081828 0%,#060f1c 100%);border:1px solid #1a3a54;border-radius:8px;padding:14px 18px;margin:8px 0;}
 .cluster-info-card .ci-header{font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:var(--a2);font-weight:700;margin-bottom:6px;}
 .cluster-info-card .ci-body{font-size:0.78rem;color:var(--text);line-height:1.6;}
-/* ── Numeric Snapshot Card ── */
 .num-snap-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;}
 .num-snap-title{font-family:'JetBrains Mono',monospace;font-size:0.76rem;color:var(--a1);margin-bottom:8px;}
-/* ═══════════ LANDING PAGE CSS ═══════════ */
 .landing-hero{text-align:center;padding:52px 20px 40px;position:relative;}
 .landing-hero::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:700px;height:2px;background:linear-gradient(90deg,transparent,#2d8fcb 30%,#22a878 70%,transparent);}
 .landing-badge{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:0.62rem;letter-spacing:0.22em;text-transform:uppercase;color:#22a878;background:#071f14;border:1px solid #1a5038;padding:4px 16px;border-radius:20px;margin-bottom:20px;}
@@ -263,7 +263,6 @@ def detect_mode(series):
     if n_unique<=5 and n_unique/max(n_total,1)<0.05: return "classification"
     return "regression"
 
-# ── FIXED: safe fillna helper ─────────────────────────────────────────
 def safe_fillna(col):
     """Fill NA values safely regardless of pandas dtype (numeric vs string)."""
     if is_numeric_dtype(col):
@@ -394,19 +393,47 @@ class ManualKMeans:
         return self
     def predict(self,X): return self._assign_labels(X)
 
+# ══════════════════════════════════════════════════════════
+# FIX: ManualPCA — removed duplicate transform, added fit_transform
+# ══════════════════════════════════════════════════════════
 class ManualPCA:
-    def __init__(self,n_components=2):
-        self.n_components=n_components;self.components_=None;self.explained_variance_=None;self.explained_variance_ratio_=None;self.mean_=None
-    def fit(self,X):
-        self.mean_=X.mean(axis=0);X_c=X-self.mean_;cov=np.cov(X_c,rowvar=False)
-        if cov.ndim==0: cov=np.array([[float(cov)]])
-        eigenvalues,eigenvectors=np.linalg.eigh(cov);order=np.argsort(eigenvalues)[::-1]
-        eigenvalues=eigenvalues[order];eigenvectors=eigenvectors[:,order]
-        self.components_=eigenvectors[:,:self.n_components].T;self.explained_variance_=eigenvalues[:self.n_components]
-        total_var=eigenvalues.sum();self.explained_variance_ratio_=self.explained_variance_/total_var if total_var>0 else self.explained_variance_*0
+    def __init__(self, n_components=2):
+        self.n_components = n_components
+        self.components_ = None
+        self.explained_variance_ = None
+        self.explained_variance_ratio_ = None
+        self.mean_ = None
+
+    def fit(self, X):
+        X = np.array(X, dtype=float)
+        self.mean_ = X.mean(axis=0)
+        X_c = X - self.mean_
+        cov = np.cov(X_c, rowvar=False)
+        if cov.ndim == 0:
+            cov = np.array([[float(cov)]])
+        eigenvalues, eigenvectors = np.linalg.eigh(cov)
+        order = np.argsort(eigenvalues)[::-1]
+        eigenvalues = eigenvalues[order]
+        eigenvectors = eigenvectors[:, order]
+        self.components_ = eigenvectors[:, :self.n_components].T
+        self.explained_variance_ = eigenvalues[:self.n_components]
+        total_var = eigenvalues.sum()
+        self.explained_variance_ratio_ = (
+            self.explained_variance_ / total_var if total_var > 0
+            else self.explained_variance_ * 0
+        )
         return self
-    def transform(self,X): return (X-self.mean_)@self.components_.T
-    def fit_transform(self,X): return self.fit(X).transform(X)
+
+    def transform(self, X):
+        X = np.array(X, dtype=float)
+        if X.ndim == 1:
+            X = X.reshape(1, -1)
+        return (X - self.mean_) @ self.components_.T
+
+    def fit_transform(self, X):
+        """Fit then transform in one call."""
+        self.fit(X)
+        return self.transform(X)
 
 class ManualHierarchicalClustering:
     def __init__(self,n_clusters=3,linkage_type="complete"): self.n_clusters=n_clusters;self.linkage_type=linkage_type;self.labels_=None
@@ -670,7 +697,7 @@ if "show_uploader" not in st.session_state:
 st.markdown("""
 <div class="landing-hero">
   <div class="landing-badge">⬡ v10 · Production AI System</div>
-  <div class="landing-title">Intelligent Data Analysis<br>&amp; <span class="grad">ML System</span></div>
+  <div class="landing-title">Intelligent Data Analysis<br>&amp; <span class="grad">ML Prediction System</span></div>
   <div class="landing-sub">Upload your dataset to unlock powerful AI insights — automatic model selection, deep EDA, clustering, and prediction in one dashboard.</div>
   <div class="landing-stat-strip">
     <div class="landing-stat"><div class="landing-stat-num">9+</div><div class="landing-stat-lbl">Regression Models</div></div>
@@ -1046,7 +1073,6 @@ if train_btn:
         np.random.seed(42);feature_encoders={};X_parts=[]
         for feat in ml_features:
             col=data[feat]
-            # FIXED: robust dtype check instead of col.dtype==object
             if not is_numeric_dtype(col):
                 fe=LabelEncoder()
                 mode_val=col.mode()[0] if not col.mode().empty else "missing"
@@ -1341,7 +1367,6 @@ else:
     default_unsup_feats=numeric_cols[:min(5,len(numeric_cols))];unsup_feats=st.multiselect("Select numeric features (min 2)",numeric_cols,default=default_unsup_feats,key="unsup_feats")
     if len(unsup_feats)<2: st.warning("Please select at least 2 numeric features.")
     else:
-        # FIXED: use safe_fillna for all unsupervised feature columns
         X_unsup_raw = np.hstack([
             safe_fillna(data[f]).values.astype(float).reshape(-1, 1)
             for f in unsup_feats
@@ -1370,10 +1395,14 @@ else:
                 else: q_label,q_cls="N/A","km-quality-moderate"
                 st.markdown(km_step("1","What is K-Means?"),unsafe_allow_html=True)
                 st.markdown(f'<div class="km-explainer"><p>K-Means divided your <strong>{n_points:,} records</strong> into <strong>{km_k_used} groups</strong> based on: {", ".join(f"<em>{f}</em>" for f in unsup_feats)}. Quality: <span class="{q_cls} km-quality-badge">{q_label} (sil={km_sil:.2f})</span></p></div>',unsafe_allow_html=True)
-                if X_unsup.shape[1]==2: plot_X=X_unsup;ax_lx=unsup_feats[0];ax_ly=unsup_feats[1];cent_plot=km_centroids
+                # ── FIXED: use fit_transform (now available) ──
+                if X_unsup.shape[1]==2:
+                    plot_X=X_unsup;ax_lx=unsup_feats[0];ax_ly=unsup_feats[1];cent_plot=km_centroids
                 else:
-                    pca_viz=ManualPCA(2);plot_X=pca_viz.fit_transform(X_unsup);vr=pca_viz.explained_variance_ratio_
-                    ax_lx=f"PC1 ({vr[0]*100:.1f}%)";ax_ly=f"PC2 ({vr[1]*100:.1f}%)";cent_plot=pca_viz.transform(km_centroids)
+                    pca_viz=ManualPCA(2);plot_X=pca_viz.fit_transform(X_unsup)
+                    vr=pca_viz.explained_variance_ratio_
+                    ax_lx=f"PC1 ({vr[0]*100:.1f}%)";ax_ly=f"PC2 ({vr[1]*100:.1f}%)"
+                    cent_plot=pca_viz.transform(km_centroids)
                 fig_km,ax_km=plt.subplots(figsize=(10,6))
                 for cid in range(km_k_used):
                     mask=km_labels==cid;clr=CLUSTER_PALETTE[cid%len(CLUSTER_PALETTE)]
@@ -1414,8 +1443,12 @@ else:
                 noise_pct=n_noise/n_points*100
                 if noise_pct>30: st.markdown(render_warning("High Noise",f"{noise_pct:.1f}% of points labelled as noise. Try increasing eps or reducing min_samples.",level="moderate"),unsafe_allow_html=True)
                 elif n_clusters==0: st.markdown(render_warning("No Clusters Found","All points are noise! Increase eps or reduce min_samples significantly.",level="critical"),unsafe_allow_html=True)
-                if X_unsup.shape[1]==2: plot_X=X_unsup;ax_lx=unsup_feats[0];ax_ly=unsup_feats[1]
-                else: pca_db=ManualPCA(2);plot_X=pca_db.fit_transform(X_unsup);vr=pca_db.explained_variance_ratio_;ax_lx=f"PC1 ({vr[0]*100:.1f}%)";ax_ly=f"PC2 ({vr[1]*100:.1f}%)"
+                # ── FIXED: use fit_transform ──
+                if X_unsup.shape[1]==2:
+                    plot_X=X_unsup;ax_lx=unsup_feats[0];ax_ly=unsup_feats[1]
+                else:
+                    pca_db=ManualPCA(2);plot_X=pca_db.fit_transform(X_unsup)
+                    vr=pca_db.explained_variance_ratio_;ax_lx=f"PC1 ({vr[0]*100:.1f}%)";ax_ly=f"PC2 ({vr[1]*100:.1f}%)"
                 fig_db,ax_db=plt.subplots(figsize=(10,6));noise_mask=db_labels==-1
                 if noise_mask.sum()>0: ax_db.scatter(plot_X[noise_mask,0],plot_X[noise_mask,1],s=25,color=NOISE_COLOR,alpha=0.5,marker="x",linewidths=1.2,label=f"Noise / Outliers (n={noise_mask.sum()})",zorder=2)
                 for cid in [c for c in unique_clusters if c!=-1]:
@@ -1451,8 +1484,12 @@ else:
                 mc+='</div>';st.markdown(mc,unsafe_allow_html=True)
                 vis1,vis2=st.columns(2)
                 with vis1:
-                    if X_hc_plot.shape[1]==2: plot_X_hc=X_hc_plot;lx=unsup_feats[0];ly=unsup_feats[1]
-                    else: pca_hc=ManualPCA(2);plot_X_hc=pca_hc.fit_transform(X_hc_plot);vr=pca_hc.explained_variance_ratio_;lx=f"PC1 ({vr[0]*100:.1f}%)";ly=f"PC2 ({vr[1]*100:.1f}%)"
+                    # ── FIXED: use fit_transform ──
+                    if X_hc_plot.shape[1]==2:
+                        plot_X_hc=X_hc_plot;lx=unsup_feats[0];ly=unsup_feats[1]
+                    else:
+                        pca_hc=ManualPCA(2);plot_X_hc=pca_hc.fit_transform(X_hc_plot)
+                        vr=pca_hc.explained_variance_ratio_;lx=f"PC1 ({vr[0]*100:.1f}%)";ly=f"PC2 ({vr[1]*100:.1f}%)"
                     fig_hcs,ax_hcs=plt.subplots(figsize=(6,5))
                     for cid,cnt in zip(uniq_hc,cnt_hc):
                         mask=hc_labels==cid;clr=CLUSTER_PALETTE[cid%len(CLUSTER_PALETTE)];ax_hcs.scatter(plot_X_hc[mask,0],plot_X_hc[mask,1],s=55,color=clr,alpha=0.8,edgecolors="none",label=f"Cluster {cid+1} (n={cnt})")
@@ -1524,7 +1561,6 @@ else:
                     with st.spinner("Running Apriori…"):
                         sub_data=data[ap_feats_sel].head(ap_max_rows).copy();disc_data=pd.DataFrame()
                         for feat in ap_feats_sel:
-                            # FIXED: safe_fillna used here — resolves the original crash
                             col = sub_data[feat]
                             col = safe_fillna(col)
                             try:
@@ -1549,3 +1585,4 @@ else:
 # FOOTER
 st.markdown('<div class="section-divider"></div>',unsafe_allow_html=True)
 st.markdown('<div style="text-align:center;padding:14px 0;font-family:JetBrains Mono,monospace;font-size:0.68rem;color:#1d3a54;letter-spacing:0.1em;">INTELLIGENT DATA ANALYSIS &amp; ML SYSTEM v10 · 9 REGRESSION MODELS · 7+ CLASSIFICATION MODELS · DBSCAN · HIERARCHICAL · t-SNE · K-MEANS · APRIORI · MANUAL &amp; SKLEARN IMPLEMENTATIONS</div>',unsafe_allow_html=True)
+
